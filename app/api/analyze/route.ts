@@ -3,8 +3,12 @@ import OpenAI from 'openai';
 
 // Initialiser le client OpenAI avec la clé API
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 60000, // 60 secondes
+  maxRetries: 3
 });
+
+export const maxDuration = 300; // 5 minutes en secondes
 
 export async function POST(request: Request) {
   try {
@@ -20,9 +24,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Parser les données
-    const cvData = JSON.parse(body.cvData)
-    const jobData = JSON.parse(body.jobData)
+    // Les données sont déjà des objets, pas besoin de les parser
+    const cvData = body.cvData
+    const jobData = body.jobData
 
     console.log('Données parsées:', { 
       cv: typeof cvData === 'object',
