@@ -7,14 +7,12 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  staticPageGenerationTimeout: 1000,
+  }
 }
 
 mergeConfig(nextConfig, userConfig)
