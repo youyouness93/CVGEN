@@ -4,36 +4,48 @@ import { JobDescriptionForm } from "@/components/job-description-form"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-export default function Page() {
-  const [isLoading, setIsLoading] = useState(false)
+export function SubmitHandler() {
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
-  const onSubmit = async (data: { jobTitle: string; jobDescription: string }) => {
+  const handleSubmit = async (data: { jobTitle: string; jobDescription: string }) => {
     try {
       setIsLoading(true)
-      console.log('Sauvegarde des données du job:', data)
-      
-      // Sauvegarder les données dans le localStorage
-      localStorage.setItem('jobData', JSON.stringify(data))
-      
+
+      // Envoyer les données à l'API
+      const response = await fetch("/api/job-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      const responseData = await response.json()
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Erreur lors de la sauvegarde")
+      }
+
+      // Stocker les données dans le localStorage
+      localStorage.setItem('jobData', JSON.stringify(responseData))
+
       // Rediriger vers la page de génération
-      router.push('/create/generate')
+      router.push("/create/generate")
     } catch (error) {
-      console.error('Erreur lors de la soumission:', error)
+      console.error('Erreur:', error)
+      throw new Error("Erreur lors de la sauvegarde de la description")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Description du poste</h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          Entrez les détails du poste pour lequel vous postulez
-        </p>
-      </div>
-      <JobDescriptionForm onSubmit={onSubmit} isLoading={isLoading} />
+    <div className="space-y-4">
+      <JobDescriptionForm onSubmit={handleSubmit} isLoading={isLoading} />
+      {isLoading && (
+        <div className="text-center p-4">
+          <div className="animate-pulse">Sauvegarde en cours...</div>
+        </div>
+      )}
     </div>
   )
 }

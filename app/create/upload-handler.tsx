@@ -56,10 +56,7 @@ export function UploadHandler() {
       )}
       {extractedText && (
         <div className="mt-4 space-y-4">
-          <div >
-            
-            
-          </div>
+          
           <div className="flex justify-end">
             <Button onClick={handleContinue}>
               Continuer vers la description du poste

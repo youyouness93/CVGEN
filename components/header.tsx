@@ -1,14 +1,8 @@
-"use client"
-
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { FileText, Home, History, User } from "lucide-react"
-import { GenerateCVButton } from "@/components/generate-cv-button"
-import { useRouter } from "next/navigation"
 
 export function Header() {
-  const router = useRouter()
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card">
       <div className="container flex h-16 items-center justify-between">
@@ -18,22 +12,20 @@ export function Header() {
             <span className="font-bold">CV Creator</span>
           </Link>
           <nav className="hidden md:flex gap-6">
-            <Button
-              variant="link"
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground p-0"
-              onClick={() => router.push('/')}
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <Home className="h-4 w-4" />
               Accueil
-            </Button>
-            <Button
-              variant="link"
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground p-0"
-              onClick={() => router.push('/history')}
+            </Link>
+            <Link
+              href="/history"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <History className="h-4 w-4" />
               Historique
-            </Button>
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -41,9 +33,12 @@ export function Header() {
             <User className="h-5 w-5" />
             <span className="sr-only">Menu</span>
           </Button>
-          <GenerateCVButton />
+          <Button asChild className="hidden md:inline-flex">
+            <Link href="/create">Générer mon CV</Link>
+          </Button>
         </div>
       </div>
     </header>
   )
 }
+

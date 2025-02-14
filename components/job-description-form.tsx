@@ -24,10 +24,9 @@ const formSchema = z.object({
 
 interface JobDescriptionFormProps {
   onSubmit: (data: z.infer<typeof formSchema>) => Promise<void>
-  isLoading?: boolean
 }
 
-export function JobDescriptionForm({ onSubmit, isLoading }: JobDescriptionFormProps) {
+export function JobDescriptionForm({ onSubmit }: JobDescriptionFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -104,11 +103,12 @@ export function JobDescriptionForm({ onSubmit, isLoading }: JobDescriptionFormPr
         )}
 
         <div className="flex justify-end gap-4">
-          <Button type="submit" disabled={isSubmitting || isLoading} className="min-w-[140px]">
-            {isSubmitting || isLoading ? "Analyse en cours..." : "Analyser"}
+          <Button type="submit" disabled={isSubmitting} className="min-w-[140px]">
+            {isSubmitting ? "Analyse en cours..." : "Analyser"}
           </Button>
         </div>
       </form>
     </Form>
   )
 }
+

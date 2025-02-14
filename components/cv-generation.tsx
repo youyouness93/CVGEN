@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -27,8 +26,6 @@ interface CvGenerationProps {
 }
 
 export function CvGeneration({ cvData, jobData, onGenerate }: CvGenerationProps) {
-  const router = useRouter()
-  const [showPdfModal, setShowPdfModal] = useState(false)
   const [status, setStatus] = useState<"idle" | "generating" | "error" | "success">("idle")
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState("")
@@ -79,13 +76,30 @@ export function CvGeneration({ cvData, jobData, onGenerate }: CvGenerationProps)
             <CardDescription>Informations extraites de votre CV</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Button variant="link" onClick={() => setShowPdfModal(true)}>
-                Afficher votre CV
-              </Button>
-              <Button variant="outline" onClick={() => router.push('/create')}>
-                Modifier
-              </Button>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Poste actuel</h4>
+              <p className="font-medium">{cvData.title}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Expériences</h4>
+              <ul className="space-y-2">
+                {cvData.experiences.map((exp) => (
+                  <li key={exp.id} className="text-sm">
+                    <span className="font-medium">{exp.role}</span>
+                    <span className="text-muted-foreground"> chez {exp.company}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Compétences clés</h4>
+              <div className="flex flex-wrap gap-2">
+                {cvData.skills.map((skill) => (
+                  <Badge key={skill} variant="secondary">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -179,3 +193,4 @@ export function CvGeneration({ cvData, jobData, onGenerate }: CvGenerationProps)
     </div>
   )
 }
+

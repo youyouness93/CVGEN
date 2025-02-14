@@ -8,28 +8,14 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    console.log('Données reçues:', body)
+    const { cvData, jobData } = await request.json();
 
-    // Vérifier si les données sont présentes
-    if (!body.cvData || !body.jobData) {
-      console.error('Données manquantes:', { cvData: !!body.cvData, jobData: !!body.jobData })
+    if (!cvData || !jobData) {
       return NextResponse.json(
-        { error: "Les données du CV et de l'offre d'emploi sont requises" },
+        { error: 'CV et description du poste requis' },
         { status: 400 }
-      )
+      );
     }
-
-    // Parser les données
-    const cvData = JSON.parse(body.cvData)
-    const jobData = JSON.parse(body.jobData)
-
-    console.log('Données parsées:', { 
-      cv: typeof cvData === 'object',
-      job: typeof jobData === 'object',
-      jobTitle: jobData?.jobTitle,
-      hasJobDescription: !!jobData?.jobDescription
-    })
 
     // Construire le prompt pour GPT-4
     const prompt = `Tu es un expert en ressources humaines spécialisé dans la création de CV selon les normes canadiennes.
@@ -171,8 +157,14 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
     });
 
     // Récupérer et parser la réponse
-    // @ts-ignore - Les données sont validées avant l'appel
-    const optimizedCV = JSON.parse(completion.choices[0].message.content);
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      return NextResponse.json(
+        { error: 'Réponse invalide de l\'API' },
+        { status: 500 }
+      );
+    }
+    const optimizedCV = JSON.parse(content);
 
     // Stocker le CV optimisé dans le localStorage côté client
     return NextResponse.json(optimizedCV);

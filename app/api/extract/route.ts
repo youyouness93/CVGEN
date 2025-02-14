@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Erreur générale:', error);
     return NextResponse.json(
-      { error: `Erreur générale: ` },
+      { error: `Erreur générale: ${error.message}` },
       { status: 500 }
     );
   }
@@ -79,17 +79,17 @@ async function extractPDFText(buffer: Buffer): Promise<string> {
 
           resolve(text);
         } catch (error) {
-          reject(new Error(`Erreur lors de l'extraction du texte: `));
+          reject(new Error(`Erreur lors de l'extraction du texte: ${error.message}`));
         }
       });
 
       pdfParser.on('pdfParser_dataError', (error) => {
-        reject(new Error(`Erreur lors du parsing PDF:`));
+        reject(new Error(`Erreur lors du parsing PDF: ${error.message}`));
       });
 
       pdfParser.parseBuffer(buffer);
     } catch (error) {
-      reject(new Error(`Erreur lors de l'initialisation du parser: `));
+      reject(new Error(`Erreur lors de l'initialisation du parser: ${error.message}`));
     }
   });
 }

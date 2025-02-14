@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button"
 import { Header } from "@/components/header"
 import { ArrowRight, CheckCircle, FileText } from "lucide-react"
 import Link from "next/link"
-import { StartButton } from "@/components/start-button"
 
 export default function Home() {
   return (
@@ -19,9 +18,12 @@ export default function Home() {
               artificielle.
             </p>
             <div className="space-x-4">
-              <Link href="/create">
-                <StartButton />
-              </Link>
+              <Button asChild size="lg" className="gap-2">
+                <Link href="/create">
+                  Commencer
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
           </div>
         </section>
@@ -67,3 +69,4 @@ const steps = [
     icon: <ArrowRight className="h-6 w-6" />,
   },
 ]
+
