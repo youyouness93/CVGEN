@@ -17,19 +17,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Créer une entrée dans la base de données
+    // Vérifier si une génération similaire existe déjà
+    const existingCV = await prisma.cV.findFirst({
+      where: {
+        originalCV: cvData as any,
+        jobData: jobData as any,
+        createdAt: {
+          gte: new Date(Date.now() - 60000) // Dans la dernière minute
+        }
+      }
+    });
+
+    if (existingCV) {
+      console.log('Génération similaire trouvée:', existingCV.id);
+      return NextResponse.json({ id: existingCV.id });
+    }
+
+    // Créer une nouvelle entrée
+    console.log('Création d\'une nouvelle entrée...');
     const cv = await prisma.cV.create({
       data: {
-        originalCV: cvData,
-        jobData: jobData,
+        originalCV: cvData as any,
+        jobData: jobData as any,
         status: 'processing'
       }
     });
 
-    // Lancer la génération en arrière-plan
-    generateCV(cv.id, cvData, jobData).catch(console.error);
+    console.log('Nouvelle entrée créée:', cv.id);
 
-    // Retourner l'ID pour le suivi
+    // Lancer la génération en arrière-plan
+    generateCV(cv.id, cvData, jobData).catch(error => {
+      console.error('Erreur de génération en arrière-plan:', error);
+    });
+
     return NextResponse.json({ id: cv.id });
 
   } catch (error: any) {
@@ -52,17 +72,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('Recherche du CV:', id);
     const cv = await prisma.cV.findUnique({
       where: { id }
     });
 
     if (!cv) {
+      console.log('CV non trouvé:', id);
       return NextResponse.json(
         { error: 'CV non trouvé' },
         { status: 404 }
       );
     }
 
+    console.log('CV trouvé:', id, 'Status:', cv.status);
     return NextResponse.json({
       status: cv.status,
       error: cv.error,
@@ -80,6 +103,7 @@ export async function GET(request: NextRequest) {
 
 async function generateCV(id: string, cvData: any, jobData: any) {
   try {
+    console.log('Début de la génération pour:', id);
     // Construire le prompt pour GPT-4
     const prompt = `Tu es un expert en ressources humaines spécialisé dans la création de CV selon les normes canadiennes.
 Tu as une excellente capacité à identifier les liens entre les activités personnelles et les compétences professionnelles.
@@ -216,6 +240,7 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
 
     const content = completion.choices[0].message.content;
     if (!content) {
+      console.error('Réponse vide de l\'API pour:', id);
       await prisma.cV.update({
         where: { id },
         data: {
@@ -227,7 +252,9 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
     }
 
     try {
+      console.log('Parsing de la réponse pour:', id);
       const optimizedCV = JSON.parse(content);
+      console.log('Mise à jour du CV:', id);
       await prisma.cV.update({
         where: { id },
         data: {
@@ -235,8 +262,9 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
           optimizedCV
         }
       });
+      console.log('CV mis à jour avec succès:', id);
     } catch (parseError) {
-      console.error('Erreur de parsing JSON:', content);
+      console.error('Erreur de parsing JSON pour:', id, content);
       await prisma.cV.update({
         where: { id },
         data: {
@@ -247,7 +275,7 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
     }
 
   } catch (error: any) {
-    console.error('Erreur lors de la génération:', error);
+    console.error('Erreur lors de la génération pour:', id, error);
     await prisma.cV.update({
       where: { id },
       data: {

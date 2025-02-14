@@ -25,11 +25,13 @@ export function GenerationHandler() {
     }
 
     const startGeneration = async () => {
+      if (isLoading) return; // Éviter les appels multiples
+      
       setIsLoading(true);
       setError(null);
 
       try {
-        // Démarrer la génération
+        console.log('Démarrage de la génération...');
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: {
@@ -41,43 +43,61 @@ export function GenerationHandler() {
           }),
         });
 
+        const data = await response.json();
+        console.log('Réponse initiale:', data);
+
         if (!response.ok) {
-          const data = await response.json();
           throw new Error(data.error || 'Erreur lors de la génération du CV');
         }
 
-        const { id } = await response.json();
-        setCvId(id);
+        if (!data.id) {
+          throw new Error('ID manquant dans la réponse');
+        }
+
+        setCvId(data.id);
 
         // Vérifier l'état toutes les 2 secondes
         const checkStatus = async () => {
-          const statusResponse = await fetch(`/api/analyze?id=${id}`);
-          
-          if (!statusResponse.ok) {
-            const data = await statusResponse.json();
-            throw new Error(data.error || 'Erreur lors de la vérification');
-          }
+          try {
+            console.log('Vérification du statut...');
+            const statusResponse = await fetch(`/api/analyze?id=${data.id}`);
+            const result = await statusResponse.json();
+            console.log('Statut actuel:', result);
 
-          const result = await statusResponse.json();
+            if (!statusResponse.ok) {
+              throw new Error(result.error || 'Erreur lors de la vérification');
+            }
 
-          if (result.error) {
-            throw new Error(result.error);
-          }
+            if (result.error) {
+              throw new Error(result.error);
+            }
 
-          if (result.status === 'processing') {
-            // Continuer à vérifier
-            setTimeout(checkStatus, 2000);
-            return;
-          }
+            if (result.status === 'error') {
+              throw new Error(result.error || 'Une erreur est survenue pendant la génération');
+            }
 
-          if (result.status === 'completed' && result.data) {
-            setOptimizedCV(result.data);
+            if (result.status === 'processing') {
+              // Continuer à vérifier
+              setTimeout(checkStatus, 2000);
+              return;
+            }
+
+            if (result.status === 'completed' && result.data) {
+              console.log('Génération terminée avec succès');
+              setOptimizedCV(result.data);
+              setIsLoading(false);
+            } else {
+              throw new Error('Données manquantes dans la réponse');
+            }
+          } catch (err: any) {
+            console.error('Erreur lors de la vérification:', err);
+            setError(err?.message || 'Erreur lors de la vérification du statut');
             setIsLoading(false);
           }
         };
 
         // Démarrer la vérification
-        checkStatus();
+        await checkStatus();
 
       } catch (err: any) {
         console.error('Erreur lors de la génération:', err);
@@ -87,7 +107,7 @@ export function GenerationHandler() {
     };
 
     startGeneration();
-  }, [cvData, jobData, router]);
+  }, [cvData, jobData, router, isLoading]);
 
   if (error) {
     return (
@@ -100,7 +120,8 @@ export function GenerationHandler() {
               <button
                 onClick={() => {
                   setError(null);
-                  setIsLoading(true);
+                  setIsLoading(false); // Reset isLoading avant de réessayer
+                  setCvId(null); // Reset cvId
                   router.refresh();
                 }}
                 className="text-sm font-medium text-red-800 hover:text-red-900"
