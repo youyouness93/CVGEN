@@ -8,17 +8,25 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { cvData, jobData } = await request.json();
+    const body = await request.json();
+    const { cvData, jobData } = body;
 
-    if (!cvData || !jobData) {
-      return NextResponse.json(
-        { error: 'CV et description du poste requis' },
-        { status: 400 }
-      );
+    // Vérifier si une génération est déjà en cours pour ce CV
+    const existingCV = await prisma.cV.findFirst({
+      where: {
+        AND: [
+          { originalCV: { equals: JSON.stringify(cvData) } },
+          { jobData: { equals: JSON.stringify(jobData) } },
+          { status: 'processing' }
+        ]
+      }
+    });
+
+    if (existingCV) {
+      return NextResponse.json({ id: existingCV.id });
     }
 
-    // Créer une nouvelle entrée
-    console.log('Création d\'une nouvelle entrée...');
+    // Créer une nouvelle entrée dans la base de données
     const cv = await prisma.cV.create({
       data: {
         originalCV: JSON.stringify(cvData),
@@ -27,19 +35,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('Nouvelle entrée créée:', cv.id);
-
-    // Lancer la génération en arrière-plan
-    generateCV(cv.id, cvData, jobData).catch(error => {
-      console.error('Erreur de génération en arrière-plan:', error);
-    });
+    // Lancer la génération de manière asynchrone
+    generateCV(cv.id, cvData, jobData).catch(console.error);
 
     return NextResponse.json({ id: cv.id });
-
-  } catch (error: any) {
-    console.error('Erreur lors de la création:', error);
+  } catch (error) {
+    console.error('Error in POST:', error);
     return NextResponse.json(
-      { error: error?.message || 'Erreur lors de la création' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -47,39 +50,55 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get('id');
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json(
-        { error: 'ID requis' },
+        { error: 'Missing id parameter' },
         { status: 400 }
       );
     }
 
-    console.log('Recherche du CV:', id);
     const cv = await prisma.cV.findUnique({
       where: { id }
     });
 
     if (!cv) {
-      console.log('CV non trouvé:', id);
       return NextResponse.json(
-        { error: 'CV non trouvé' },
+        { error: 'CV not found' },
         { status: 404 }
       );
     }
 
-    console.log('CV trouvé:', id, 'Status:', cv.status);
+    // Si le CV est complété, renvoyer les données
+    if (cv.status === 'completed' && typeof cv.optimizedCV === 'string') {
+      return NextResponse.json({
+        status: cv.status,
+        error: cv.error,
+        data: JSON.parse(cv.optimizedCV)
+      });
+    }
+
+    // Si le CV est en erreur, renvoyer l'erreur
+    if (cv.status === 'error') {
+      return NextResponse.json({
+        status: cv.status,
+        error: cv.error,
+        data: null
+      });
+    }
+
+    // Si le CV est en cours de traitement
     return NextResponse.json({
       status: cv.status,
-      error: cv.error,
-      data: cv.optimizedCV ? JSON.parse(cv.optimizedCV as string) : null
+      error: null,
+      data: null
     });
-
-  } catch (error: any) {
-    console.error('Erreur lors de la vérification:', error);
+  } catch (error) {
+    console.error('Error in GET:', error);
     return NextResponse.json(
-      { error: error?.message || 'Erreur lors de la vérification' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -217,7 +236,7 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
           content: prompt
         }
       ],
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini-realtime-preview",
       response_format: { type: "json_object" },
       temperature: 0.8,
     });
