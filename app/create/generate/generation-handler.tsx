@@ -39,13 +39,17 @@ export function GenerationHandler() {
           }),
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Erreur lors de la génération du CV');
+          throw new Error(data.error || 'Erreur lors de la génération du CV');
         }
 
-        const result = await response.json();
-        setOptimizedCV(result);
+        if (!data || typeof data !== 'object') {
+          throw new Error('Format de réponse invalide');
+        }
+
+        setOptimizedCV(data);
         setIsLoading(false);
 
       } catch (err: any) {
@@ -65,6 +69,18 @@ export function GenerationHandler() {
           <div className="ml-3">
             <h3 className="text-sm font-medium text-red-800">Erreur</h3>
             <div className="mt-2 text-sm text-red-700">{error}</div>
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setError(null);
+                  setIsLoading(true);
+                  router.refresh();
+                }}
+                className="text-sm font-medium text-red-800 hover:text-red-900"
+              >
+                Réessayer
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -73,8 +89,10 @@ export function GenerationHandler() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <p className="text-lg font-medium">Génération du CV en cours...</p>
+        <p className="text-sm text-gray-500">Cela peut prendre quelques instants</p>
       </div>
     );
   }

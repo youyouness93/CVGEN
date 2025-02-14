@@ -159,13 +159,21 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
       );
     }
 
-    const optimizedCV = JSON.parse(content);
-    return NextResponse.json(optimizedCV);
+    try {
+      const optimizedCV = JSON.parse(content);
+      return NextResponse.json(optimizedCV);
+    } catch (parseError) {
+      console.error('Erreur de parsing JSON:', content);
+      return NextResponse.json(
+        { error: 'Format de réponse invalide' },
+        { status: 500 }
+      );
+    }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la génération:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la génération du CV' },
+      { error: error?.message || 'Erreur lors de la génération du CV' },
       { status: 500 }
     );
   }
