@@ -1,3 +1,5 @@
+"use client"
+
 import { Header } from "@/components/header"
 import { Steps } from "@/components/steps"
 import { GenerationHandler } from "./generation-handler"
