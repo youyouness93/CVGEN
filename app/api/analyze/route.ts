@@ -17,28 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier si une génération similaire existe déjà
-    const existingCV = await prisma.cV.findFirst({
-      where: {
-        originalCV: cvData as any,
-        jobData: jobData as any,
-        createdAt: {
-          gte: new Date(Date.now() - 60000) // Dans la dernière minute
-        }
-      }
-    });
-
-    if (existingCV) {
-      console.log('Génération similaire trouvée:', existingCV.id);
-      return NextResponse.json({ id: existingCV.id });
-    }
-
     // Créer une nouvelle entrée
     console.log('Création d\'une nouvelle entrée...');
     const cv = await prisma.cV.create({
       data: {
-        originalCV: cvData as any,
-        jobData: jobData as any,
+        originalCV: JSON.stringify(cvData),
+        jobData: JSON.stringify(jobData),
         status: 'processing'
       }
     });
@@ -89,7 +73,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       status: cv.status,
       error: cv.error,
-      data: cv.optimizedCV
+      data: cv.optimizedCV ? JSON.parse(cv.optimizedCV as string) : null
     });
 
   } catch (error: any) {
@@ -259,7 +243,7 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
         where: { id },
         data: {
           status: 'completed',
-          optimizedCV
+          optimizedCV: JSON.stringify(optimizedCV)
         }
       });
       console.log('CV mis à jour avec succès:', id);
