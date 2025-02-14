@@ -1,3 +1,5 @@
+"use client"
+
 import { Header } from "@/components/header"
 import { Steps } from "@/components/steps"
 import { DataViewer } from "@/components/data-viewer"
