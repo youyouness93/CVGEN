@@ -28,7 +28,6 @@ export function GenerationHandler() {
       setError(null);
 
       try {
-        // Démarrer la génération
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: {
@@ -41,41 +40,17 @@ export function GenerationHandler() {
         });
 
         if (!response.ok) {
-          throw new Error('Erreur lors de l\'analyse du CV');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Erreur lors de la génération du CV');
         }
 
-        const { taskId } = await response.json();
-        
-        // Vérifier l'état toutes les 2 secondes
-        const checkStatus = async () => {
-          const statusResponse = await fetch(`/api/analyze?taskId=${taskId}`);
-          
-          if (!statusResponse.ok) {
-            throw new Error('Erreur lors de la vérification');
-          }
-
-          const result = await statusResponse.json();
-
-          if (result.error) {
-            throw new Error(result.error);
-          }
-
-          if (result.status === 'processing') {
-            // Continuer à vérifier
-            setTimeout(checkStatus, 2000);
-            return;
-          }
-
-          // La génération est terminée
-          setOptimizedCV(result);
-          setIsLoading(false);
-        };
-
-        // Démarrer la vérification
-        checkStatus();
+        const result = await response.json();
+        setOptimizedCV(result);
+        setIsLoading(false);
 
       } catch (err: any) {
-        setError(err?.message || 'Une erreur est survenue');
+        console.error('Erreur lors de la génération:', err);
+        setError(err?.message || 'Une erreur est survenue lors de la génération');
         setIsLoading(false);
       }
     };
