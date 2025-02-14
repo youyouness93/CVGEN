@@ -15,6 +15,7 @@ export function GenerationHandler() {
   const [optimizedCV, setOptimizedCV] = useState<OptimizedCV | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cvId, setCvId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,11 +24,12 @@ export function GenerationHandler() {
       return;
     }
 
-    const generateCV = async () => {
+    const startGeneration = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
+        // Démarrer la génération
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: {
@@ -39,18 +41,43 @@ export function GenerationHandler() {
           }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
+          const data = await response.json();
           throw new Error(data.error || 'Erreur lors de la génération du CV');
         }
 
-        if (!data || typeof data !== 'object') {
-          throw new Error('Format de réponse invalide');
-        }
+        const { id } = await response.json();
+        setCvId(id);
 
-        setOptimizedCV(data);
-        setIsLoading(false);
+        // Vérifier l'état toutes les 2 secondes
+        const checkStatus = async () => {
+          const statusResponse = await fetch(`/api/analyze?id=${id}`);
+          
+          if (!statusResponse.ok) {
+            const data = await statusResponse.json();
+            throw new Error(data.error || 'Erreur lors de la vérification');
+          }
+
+          const result = await statusResponse.json();
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          if (result.status === 'processing') {
+            // Continuer à vérifier
+            setTimeout(checkStatus, 2000);
+            return;
+          }
+
+          if (result.status === 'completed' && result.data) {
+            setOptimizedCV(result.data);
+            setIsLoading(false);
+          }
+        };
+
+        // Démarrer la vérification
+        checkStatus();
 
       } catch (err: any) {
         console.error('Erreur lors de la génération:', err);
@@ -59,7 +86,7 @@ export function GenerationHandler() {
       }
     };
 
-    generateCV();
+    startGeneration();
   }, [cvData, jobData, router]);
 
   if (error) {

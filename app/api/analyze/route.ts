@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { prisma } from '@/lib/prisma';
 
-// Initialiser le client OpenAI avec la clé API
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -17,6 +17,69 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Créer une entrée dans la base de données
+    const cv = await prisma.cV.create({
+      data: {
+        originalCV: cvData,
+        jobData: jobData,
+        status: 'processing'
+      }
+    });
+
+    // Lancer la génération en arrière-plan
+    generateCV(cv.id, cvData, jobData).catch(console.error);
+
+    // Retourner l'ID pour le suivi
+    return NextResponse.json({ id: cv.id });
+
+  } catch (error: any) {
+    console.error('Erreur lors de la création:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Erreur lors de la création' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const id = request.nextUrl.searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID requis' },
+        { status: 400 }
+      );
+    }
+
+    const cv = await prisma.cV.findUnique({
+      where: { id }
+    });
+
+    if (!cv) {
+      return NextResponse.json(
+        { error: 'CV non trouvé' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      status: cv.status,
+      error: cv.error,
+      data: cv.optimizedCV
+    });
+
+  } catch (error: any) {
+    console.error('Erreur lors de la vérification:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Erreur lors de la vérification' },
+      { status: 500 }
+    );
+  }
+}
+
+async function generateCV(id: string, cvData: any, jobData: any) {
+  try {
     // Construire le prompt pour GPT-4
     const prompt = `Tu es un expert en ressources humaines spécialisé dans la création de CV selon les normes canadiennes.
 Tu as une excellente capacité à identifier les liens entre les activités personnelles et les compétences professionnelles.
@@ -153,35 +216,44 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
 
     const content = completion.choices[0].message.content;
     if (!content) {
-      return NextResponse.json(
-        { error: 'Réponse invalide de l\'API' },
-        { status: 500 }
-      );
+      await prisma.cV.update({
+        where: { id },
+        data: {
+          status: 'error',
+          error: 'Réponse invalide de l\'API'
+        }
+      });
+      return;
     }
 
     try {
       const optimizedCV = JSON.parse(content);
-      return NextResponse.json(optimizedCV);
+      await prisma.cV.update({
+        where: { id },
+        data: {
+          status: 'completed',
+          optimizedCV
+        }
+      });
     } catch (parseError) {
       console.error('Erreur de parsing JSON:', content);
-      return NextResponse.json(
-        { error: 'Format de réponse invalide' },
-        { status: 500 }
-      );
+      await prisma.cV.update({
+        where: { id },
+        data: {
+          status: 'error',
+          error: 'Format de réponse invalide'
+        }
+      });
     }
 
   } catch (error: any) {
     console.error('Erreur lors de la génération:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Erreur lors de la génération du CV' },
-      { status: 500 }
-    );
+    await prisma.cV.update({
+      where: { id },
+      data: {
+        status: 'error',
+        error: error?.message || 'Erreur lors de la génération du CV'
+      }
+    });
   }
-}
-
-export async function GET(request: NextRequest) {
-  return NextResponse.json(
-    { error: 'Cette méthode n\'est pas prise en charge' },
-    { status: 405 }
-  );
 }
