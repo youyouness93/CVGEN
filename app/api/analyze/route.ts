@@ -8,7 +8,7 @@ const openai = new OpenAI({
   maxRetries: 3
 });
 
-export const maxDuration = 300; // 5 minutes en secondes
+export const maxDuration = 60; // 5 minutes en secondes
 
 export async function POST(request: Request) {
   try {
