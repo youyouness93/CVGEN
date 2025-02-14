@@ -19,7 +19,7 @@ export function GenerationHandler() {
 
   useEffect(() => {
     if (!cvData || !jobData) {
-      router.push('/create/upload');
+      router.push('/create');
       return;
     }
 
@@ -28,23 +28,54 @@ export function GenerationHandler() {
       setError(null);
 
       try {
+        // Démarrer la génération
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ cvData, jobData }),
+          body: JSON.stringify({
+            cvData,
+            jobData,
+          }),
         });
 
         if (!response.ok) {
           throw new Error('Erreur lors de l\'analyse du CV');
         }
 
-        const data = await response.json();
-        setOptimizedCV(data);
+        const { taskId } = await response.json();
+        
+        // Vérifier l'état toutes les 2 secondes
+        const checkStatus = async () => {
+          const statusResponse = await fetch(`/api/analyze?taskId=${taskId}`);
+          
+          if (!statusResponse.ok) {
+            throw new Error('Erreur lors de la vérification');
+          }
+
+          const result = await statusResponse.json();
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          if (result.status === 'processing') {
+            // Continuer à vérifier
+            setTimeout(checkStatus, 2000);
+            return;
+          }
+
+          // La génération est terminée
+          setOptimizedCV(result);
+          setIsLoading(false);
+        };
+
+        // Démarrer la vérification
+        checkStatus();
+
       } catch (err: any) {
         setError(err?.message || 'Une erreur est survenue');
-      } finally {
         setIsLoading(false);
       }
     };
@@ -52,28 +83,23 @@ export function GenerationHandler() {
     generateCV();
   }, [cvData, jobData, router]);
 
-  if (isLoading) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-lg font-medium">Génération du CV en cours...</p>
-          <p className="text-sm text-gray-500">Cela peut prendre quelques instants</p>
+      <div className="rounded-md bg-red-50 p-4">
+        <div className="flex">
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Erreur</h3>
+            <div className="mt-2 text-sm text-red-700">{error}</div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (isLoading) {
     return (
-      <div className="text-center p-4">
-        <p className="text-red-500 mb-4">{error}</p>
-        <button
-          onClick={() => router.push('/create/upload')}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Réessayer
-        </button>
+      <div className="flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     );
   }

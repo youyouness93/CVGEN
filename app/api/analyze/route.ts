@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Stocker les tâches en cours
+const tasks = new Map();
+
 // Initialiser le client OpenAI avec la clé API
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -17,6 +20,71 @@ export async function POST(request: Request) {
       );
     }
 
+    // Générer un ID unique pour cette tâche
+    const taskId = Math.random().toString(36).substring(7);
+    
+    // Démarrer la génération en arrière-plan
+    generateCV(taskId, cvData, jobData);
+
+    // Retourner immédiatement l'ID de la tâche
+    return NextResponse.json({ taskId });
+
+  } catch (error) {
+    console.error('Erreur générale:', error);
+    return NextResponse.json(
+      { error: 'Erreur lors de l\'analyse du CV' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const taskId = searchParams.get('taskId');
+
+    if (!taskId) {
+      return NextResponse.json(
+        { error: 'ID de tâche requis' },
+        { status: 400 }
+      );
+    }
+
+    const task = tasks.get(taskId);
+    if (!task) {
+      return NextResponse.json(
+        { error: 'Tâche non trouvée' },
+        { status: 404 }
+      );
+    }
+
+    if (task.error) {
+      tasks.delete(taskId); // Nettoyer la tâche en erreur
+      return NextResponse.json(
+        { error: task.error },
+        { status: 500 }
+      );
+    }
+
+    if (task.result) {
+      const result = task.result;
+      tasks.delete(taskId); // Nettoyer la tâche terminée
+      return NextResponse.json(result);
+    }
+
+    return NextResponse.json({ status: 'processing' });
+
+  } catch (error) {
+    console.error('Erreur lors de la vérification:', error);
+    return NextResponse.json(
+      { error: 'Erreur lors de la vérification' },
+      { status: 500 }
+    );
+  }
+}
+
+async function generateCV(taskId: string, cvData: any, jobData: any) {
+  try {
     // Construire le prompt pour GPT-4
     const prompt = `Tu es un expert en ressources humaines spécialisé dans la création de CV selon les normes canadiennes.
 Tu as une excellente capacité à identifier les liens entre les activités personnelles et les compétences professionnelles.
@@ -139,7 +207,6 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
   ]
 }`;
 
-    // Appeler l'API GPT-4
     const completion = await openai.chat.completions.create({
       messages: [
         {
@@ -156,24 +223,17 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
       temperature: 0.8,
     });
 
-    // Récupérer et parser la réponse
     const content = completion.choices[0].message.content;
     if (!content) {
-      return NextResponse.json(
-        { error: 'Réponse invalide de l\'API' },
-        { status: 500 }
-      );
+      tasks.set(taskId, { error: 'Réponse invalide de l\'API' });
+      return;
     }
-    const optimizedCV = JSON.parse(content);
 
-    // Stocker le CV optimisé dans le localStorage côté client
-    return NextResponse.json(optimizedCV);
+    const optimizedCV = JSON.parse(content);
+    tasks.set(taskId, { result: optimizedCV });
 
   } catch (error) {
-    console.error('Erreur lors de l\'analyse:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de l\'analyse du CV' },
-      { status: 500 }
-    );
+    console.error('Erreur lors de la génération:', error);
+    tasks.set(taskId, { error: 'Erreur lors de la génération du CV' });
   }
 }
