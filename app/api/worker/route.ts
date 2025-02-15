@@ -84,7 +84,7 @@ Réponds UNIQUEMENT avec le JSON du CV optimisé.`
     await prisma.cV.update({
       where: { id },
       data: {
-        optimizedCV: generatedCV as string,
+        optimizedCV: JSON.stringify(generatedCV),
         status: 'completed'
       }
     })

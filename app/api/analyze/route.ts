@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       status: cv.status,
       error: cv.error,
       data: cv.status === 'completed' && typeof cv.optimizedCV === 'string' 
-        ? JSON.parse(cv.optimizedCV) 
+        ? JSON.parse(cv.optimizedCV)
         : null
     });
 
