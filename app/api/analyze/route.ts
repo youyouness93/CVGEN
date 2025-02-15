@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       status: cv.status,
       error: cv.error,
-      data: cv.status === 'completed' ? JSON.parse(cv.optimizedCV!) : null
+      data: cv.status === 'completed' ? JSON.parse(cv.generatedCV!) : null
     });
 
   } catch (error: any) {
@@ -263,7 +263,7 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
         where: { id },
         data: {
           status: 'completed',
-          optimizedCV: JSON.stringify(optimizedCV)
+          generatedCV: JSON.stringify(optimizedCV)
         }
       });
       console.log('CV mis à jour avec succès:', id);
