@@ -235,15 +235,6 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
     const content = completion.choices[0].message.content;
     if (!content) {
       console.error('Réponse vide de l\'API pour:', id);
-      const existingCV = await prisma.cV.findUnique({
-        where: { id }
-      });
-
-      if (!existingCV) {
-        console.error('CV non trouvé pour la mise à jour du statut d\'erreur:', id);
-        return;
-      }
-
       await prisma.cV.update({
         where: { id },
         data: {
@@ -257,17 +248,6 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
     try {
       console.log('Parsing de la réponse pour:', id);
       const optimizedCV = JSON.parse(content);
-      
-      // Vérifier si le CV existe toujours
-      const existingCV = await prisma.cV.findUnique({
-        where: { id }
-      });
-
-      if (!existingCV) {
-        console.error('CV non trouvé pour la mise à jour:', id);
-        return;
-      }
-
       console.log('Mise à jour du CV:', id);
       await prisma.cV.update({
         where: { id },
@@ -279,16 +259,6 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
       console.log('CV mis à jour avec succès:', id);
     } catch (parseError) {
       console.error('Erreur de parsing JSON pour:', id, content);
-      
-      const existingCV = await prisma.cV.findUnique({
-        where: { id }
-      });
-
-      if (!existingCV) {
-        console.error('CV non trouvé pour la mise à jour du statut d\'erreur:', id);
-        return;
-      }
-
       await prisma.cV.update({
         where: { id },
         data: {
@@ -300,16 +270,6 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
 
   } catch (error: any) {
     console.error('Erreur lors de la génération pour:', id, error);
-    
-    const existingCV = await prisma.cV.findUnique({
-      where: { id }
-    });
-
-    if (!existingCV) {
-      console.error('CV non trouvé pour la mise à jour du statut d\'erreur:', id);
-      return;
-    }
-
     await prisma.cV.update({
       where: { id },
       data: {
