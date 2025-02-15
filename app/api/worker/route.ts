@@ -76,11 +76,15 @@ Réponds UNIQUEMENT avec le JSON du CV optimisé.`
 
     const generatedCV = completion.choices[0].message.content
 
+    if (!generatedCV) {
+      throw new Error('Aucun CV généré par OpenAI')
+    }
+
     // Mettre à jour le CV dans la base de données
     await prisma.cV.update({
       where: { id },
       data: {
-        generatedCV,
+        optimizedCV: generatedCV as string,
         status: 'completed'
       }
     })
@@ -102,7 +106,7 @@ export async function GET() {
   try {
     // Récupérer un job de la queue
     const job = await redis.lpop('cv-queue')
-    if (job) {
+    if (job && typeof job === 'string') {
       await processJob(JSON.parse(job))
       return NextResponse.json({ status: 'processed' })
     }
