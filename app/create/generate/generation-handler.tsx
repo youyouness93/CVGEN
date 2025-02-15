@@ -9,13 +9,17 @@ import type { CVPDFProps } from '@/components/cv-pdf';
 
 type OptimizedCV = CVPDFProps['data'];
 
+const GENERATION_TIME = 35; // 35 secondes
+
 export function GenerationHandler() {
-  const [cvData, setCvData] = useLocalStorage('cvData', null);
-  const [jobData, setJobData] = useLocalStorage('jobData', null);
+  const [cvData] = useLocalStorage('cvData', null);
+  const [jobData] = useLocalStorage('jobData', null);
   const [optimizedCV, setOptimizedCV] = useState<OptimizedCV | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [cvId, setCvId] = useState<string | null>(null);
+  const [generationStarted, setGenerationStarted] = useState(false);
+  const [generationComplete, setGenerationComplete] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,91 +27,80 @@ export function GenerationHandler() {
       router.push('/create');
       return;
     }
+  }, [cvData, jobData, router]);
 
-    const startGeneration = async () => {
-      if (isLoading) return; // Éviter les appels multiples
-      
-      setIsLoading(true);
-      setError(null);
+  const startGeneration = async () => {
+    setGenerationStarted(true);
+    setError(null);
+    setProgress(0);
+    setGenerationComplete(false);
 
-      try {
-        console.log('Démarrage de la génération...');
-        const response = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            cvData,
-            jobData,
-          }),
-        });
+    let animationFrame: number;
+    let startTime: number;
 
-        const data = await response.json();
-        console.log('Réponse initiale:', data);
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvData, jobData }),
+      });
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Erreur lors de la génération du CV');
+      const data = await response.json();
+
+      if (!response.ok || !data.id) {
+        throw new Error(data.error || 'Erreur lors de la génération du CV');
+      }
+
+      setCvId(data.id);
+      startTime = Date.now();
+
+      const updateProgress = () => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const newProgress = Math.min((elapsed / GENERATION_TIME) * 100, 100);
+        
+        setProgress(newProgress);
+        
+        if (newProgress < 100) {
+          animationFrame = requestAnimationFrame(updateProgress);
+        } else {
+          setGenerationComplete(true);
         }
+      };
 
-        if (!data.id) {
-          throw new Error('ID manquant dans la réponse');
-        }
+      animationFrame = requestAnimationFrame(updateProgress);
 
-        setCvId(data.id);
+    } catch (error: any) {
+      setError(error?.message || 'Une erreur est survenue');
+      setGenerationStarted(false);
+    }
 
-        // Vérifier l'état toutes les 2 secondes
-        const checkStatus = async () => {
-          try {
-            console.log('Vérification du statut...');
-            const statusResponse = await fetch(`/api/analyze?id=${data.id}`);
-            const result = await statusResponse.json();
-            console.log('Statut actuel:', result);
-
-            if (!statusResponse.ok) {
-              throw new Error(result.error || 'Erreur lors de la vérification');
-            }
-
-            if (result.error) {
-              throw new Error(result.error);
-            }
-
-            if (result.status === 'error') {
-              throw new Error(result.error || 'Une erreur est survenue pendant la génération');
-            }
-
-            if (result.status === 'processing') {
-              // Continuer à vérifier
-              setTimeout(checkStatus, 2000);
-              return;
-            }
-
-            if (result.status === 'completed' && result.data) {
-              console.log('Génération terminée avec succès');
-              setOptimizedCV(result.data);
-              setIsLoading(false);
-            } else {
-              throw new Error('Données manquantes dans la réponse');
-            }
-          } catch (err: any) {
-            console.error('Erreur lors de la vérification:', err);
-            setError(err?.message || 'Erreur lors de la vérification du statut');
-            setIsLoading(false);
-          }
-        };
-
-        // Démarrer la vérification
-        await checkStatus();
-
-      } catch (err: any) {
-        console.error('Erreur lors de la génération:', err);
-        setError(err?.message || 'Une erreur est survenue lors de la génération');
-        setIsLoading(false);
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
       }
     };
+  };
 
-    startGeneration();
-  }, [cvData, jobData, router, isLoading]);
+  const fetchCV = async () => {
+    if (!cvId) return;
+
+    try {
+      const response = await fetch(`/api/analyze?id=${cvId}`);
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Erreur lors de la récupération du CV');
+      }
+
+      if (result.data) {
+        setOptimizedCV(result.data);
+      } else {
+        throw new Error('CV non disponible');
+      }
+    } catch (error: any) {
+      setError(error?.message || 'Erreur lors de la récupération du CV');
+    }
+  };
 
   if (error) {
     return (
@@ -120,8 +113,10 @@ export function GenerationHandler() {
               <button
                 onClick={() => {
                   setError(null);
-                  setIsLoading(false); // Reset isLoading avant de réessayer
-                  setCvId(null); // Reset cvId
+                  setProgress(0);
+                  setCvId(null);
+                  setGenerationComplete(false);
+                  setGenerationStarted(false);
                   router.refresh();
                 }}
                 className="text-sm font-medium text-red-800 hover:text-red-900"
@@ -135,18 +130,45 @@ export function GenerationHandler() {
     );
   }
 
-  if (isLoading) {
+  if (!optimizedCV) {
     return (
-      <div className="flex flex-col items-center justify-center space-y-4">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-        <p className="text-lg font-medium">Génération du CV en cours...</p>
-        <p className="text-sm text-gray-500">Cela peut prendre quelques instants</p>
+      <div className="flex flex-col items-center justify-center space-y-6 w-full max-w-md mx-auto">
+        {!generationStarted ? (
+          <button
+            onClick={startGeneration}
+            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-lg font-medium"
+          >
+            Démarrer la génération
+          </button>
+        ) : (
+          <>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-lg font-medium">
+              {!generationComplete ? 'Génération du CV en cours...' : 'Génération terminée !'}
+            </p>
+            <p className="text-sm text-gray-500">
+              {!generationComplete 
+                ? `${Math.round(progress)}% - Optimisation de votre CV pour le poste...`
+                : 'Votre CV a été optimisé avec succès.'
+              }
+            </p>
+            {generationComplete && (
+              <button
+                onClick={fetchCV}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Afficher le CV
+              </button>
+            )}
+          </>
+        )}
       </div>
     );
-  }
-
-  if (!optimizedCV) {
-    return null;
   }
 
   return (

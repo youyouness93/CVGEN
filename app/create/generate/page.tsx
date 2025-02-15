@@ -1,9 +1,8 @@
-"use client"
+'use client';
 
-import { Header } from "@/components/header"
-import { Steps } from "@/components/steps"
-import { GenerationHandler } from "./generation-handler"
-import { DataViewer } from "@/components/data-viewer"
+import { Header } from "@/components/header";
+import { Steps } from "@/components/steps";
+import { GenerationHandler } from "./generation-handler";
 
 export default function GeneratePage() {
   return (
@@ -27,11 +26,10 @@ export default function GeneratePage() {
               ]}
             />
 
-            <GenerationHandler />
-            
+            <GenerationHandler key={Date.now()} />
           </div>
         </div>
       </main>
     </div>
-  )
+  );
 }

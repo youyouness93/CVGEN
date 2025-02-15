@@ -8,41 +8,41 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { cvData, jobData } = body;
+    const { cvData, jobData } = await request.json();
 
-    // Vérifier si une génération est déjà en cours pour ce CV
-    const existingCV = await prisma.cV.findFirst({
-      where: {
-        AND: [
-          { originalCV: { equals: JSON.stringify(cvData) } },
-          { jobData: { equals: JSON.stringify(jobData) } },
-          { status: 'processing' }
-        ]
-      }
-    });
-
-    if (existingCV) {
-      return NextResponse.json({ id: existingCV.id });
+    if (!cvData || !jobData) {
+      return NextResponse.json(
+        { error: 'CV et description du poste requis' },
+        { status: 400 }
+      );
     }
 
-    // Créer une nouvelle entrée dans la base de données
+    const cvJson = JSON.stringify(cvData);
+    const jobJson = JSON.stringify(jobData);
+
+    // Créer une nouvelle entrée à chaque fois
+    console.log('Création d\'une nouvelle entrée...');
     const cv = await prisma.cV.create({
       data: {
-        originalCV: JSON.stringify(cvData),
-        jobData: JSON.stringify(jobData),
+        originalCV: cvJson,
+        jobData: jobJson,
         status: 'processing'
       }
     });
 
-    // Lancer la génération de manière asynchrone
-    generateCV(cv.id, cvData, jobData).catch(console.error);
+    console.log('Nouvelle entrée créée:', cv.id);
+
+    // Lancer la génération en arrière-plan
+    generateCV(cv.id, cvData, jobData).catch(error => {
+      console.error('Erreur de génération en arrière-plan:', error);
+    });
 
     return NextResponse.json({ id: cv.id });
-  } catch (error) {
-    console.error('Error in POST:', error);
+
+  } catch (error: any) {
+    console.error('Erreur lors de la création:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error?.message || 'Erreur lors de la création' },
       { status: 500 }
     );
   }
@@ -50,55 +50,39 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const id = request.nextUrl.searchParams.get('id');
 
     if (!id) {
       return NextResponse.json(
-        { error: 'Missing id parameter' },
+        { error: 'ID requis' },
         { status: 400 }
       );
     }
 
+    console.log('Recherche du CV:', id);
     const cv = await prisma.cV.findUnique({
       where: { id }
     });
 
     if (!cv) {
+      console.log('CV non trouvé:', id);
       return NextResponse.json(
-        { error: 'CV not found' },
+        { error: 'CV non trouvé' },
         { status: 404 }
       );
     }
 
-    // Si le CV est complété, renvoyer les données
-    if (cv.status === 'completed' && typeof cv.optimizedCV === 'string') {
-      return NextResponse.json({
-        status: cv.status,
-        error: cv.error,
-        data: JSON.parse(cv.optimizedCV)
-      });
-    }
-
-    // Si le CV est en erreur, renvoyer l'erreur
-    if (cv.status === 'error') {
-      return NextResponse.json({
-        status: cv.status,
-        error: cv.error,
-        data: null
-      });
-    }
-
-    // Si le CV est en cours de traitement
+    console.log('CV trouvé:', id, 'Status:', cv.status);
     return NextResponse.json({
       status: cv.status,
-      error: null,
-      data: null
+      error: cv.error,
+      data: cv.optimizedCV ? JSON.parse(cv.optimizedCV as string) : null
     });
-  } catch (error) {
-    console.error('Error in GET:', error);
+
+  } catch (error: any) {
+    console.error('Erreur lors de la vérification:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error?.message || 'Erreur lors de la vérification' },
       { status: 500 }
     );
   }
@@ -123,10 +107,10 @@ Ta tâche est d'analyser ces informations et de générer un nouveau CV au forma
 Instructions spécifiques :
 1. Génère le CV dans la langue de la description du poste
 2. Adapte FORTEMENT chaque section pour correspondre aux exigences du poste
-3. Analyse la longueur du contenu et optimise la mise en page :
-   - Si le contenu est court, augmente légèrement les marges et espacements
-   - Si le contenu est long, réduis les marges et espacements
-   - Ajoute une propriété "layout" dans le JSON avec les paramètres optimaux
+3. estimela longueur du contenu et optimise la mise en page :
+   - Si le contenu est court, ajuste les marges et espacements
+   - Si le contenu est long, ajuste les marges et espacements
+   - Ajoute une propriété "layout" dans le JSON avec les paramètres optimaux pour que le cv ne depasse pas 2 pages
 4. Pour la section "volunteerWork" :
    - Même si ces informations ne sont pas dans le CV original, CRÉE des activités de bénévolat qui :
    - Démontrent des compétences pertinentes pour le poste
@@ -149,7 +133,7 @@ Points importants pour un CV canadien :
 
 Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun texte avant ou après :
 {
-  "language": "fr ou en selon la langue de la description du poste",
+  "language": "fr / en  selon la langue de la description du poste",
   "layout": {
     "margins": {
       "top": "nombre en pixels",
@@ -162,10 +146,10 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
       "itemSpacing": "nombre en pixels",
       "lineHeight": "nombre (1.2-1.5)",
       "fontSize": {
-        "name": "nombre en pixels",
-        "title": "nombre en pixels",
-        "sectionTitle": "nombre en pixels",
-        "normal": "nombre en pixels"
+        "name": "nombre en pixels (18-20)",
+        "title": "nombre en pixels (16-18)",
+        "sectionTitle": "nombre en pixels (14-16)",
+        "normal": "nombre en pixels (10-12)"
       }
     }
   },
@@ -234,9 +218,16 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
         {
           role: "system",
           content: prompt
-        }
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            cv: cvData,
+            jobDescription: jobData
+          })
+        }  
       ],
-      model: "gpt-4o-mini-realtime-preview",
+      model: "gpt-4o-mini-2024-07-18",
       response_format: { type: "json_object" },
       temperature: 0.8,
     });
