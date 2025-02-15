@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
+import { Redis } from '@upstash/redis'
+import OpenAI from 'openai';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+})
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -32,10 +38,14 @@ export async function POST(request: NextRequest) {
 
     console.log('Nouvelle entrée créée:', cv.id);
 
-    // Lancer la génération en arrière-plan
-    generateCV(cv.id, cvData, jobData).catch(error => {
-      console.error('Erreur de génération en arrière-plan:', error);
-    });
+    // Ajouter le job à la queue Redis
+    await redis.lpush('cv-queue', JSON.stringify({
+      id: cv.id,
+      cvData,
+      jobData
+    }));
+
+    console.log('Job ajouté à la queue:', cv.id);
 
     return NextResponse.json({ id: cv.id });
 
@@ -50,7 +60,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const id = request.nextUrl.searchParams.get('id');
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
 
     if (!id) {
       return NextResponse.json(
@@ -59,13 +70,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('Recherche du CV:', id);
     const cv = await prisma.cV.findUnique({
       where: { id }
     });
 
     if (!cv) {
-      console.log('CV non trouvé:', id);
       return NextResponse.json(
         { error: 'CV non trouvé' },
         { status: 404 }
@@ -73,10 +82,11 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('CV trouvé:', id, 'Status:', cv.status);
+
     return NextResponse.json({
       status: cv.status,
       error: cv.error,
-      data: cv.optimizedCV ? JSON.parse(cv.optimizedCV as string) : null
+      data: cv.status === 'completed' ? JSON.parse(cv.optimizedCV!) : null
     });
 
   } catch (error: any) {
@@ -279,3 +289,24 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
     });
   }
 }
+
+// Fonction pour traiter les jobs dans la queue Redis
+async function processQueue() {
+  while (true) {
+    const job = await redis.rpop('cv-queue');
+    if (!job) {
+      console.log('Aucun job dans la queue');
+      break;
+    }
+
+    try {
+      const { id, cvData, jobData } = JSON.parse(job);
+      await generateCV(id, cvData, jobData);
+    } catch (error: any) {
+      console.error('Erreur lors du traitement du job:', error);
+    }
+  }
+}
+
+// Démarrer le traitement de la queue
+processQueue();
