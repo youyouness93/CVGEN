@@ -1,10 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CVPDF } from '@/components/cv-pdf';
 
 export default function DevPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <DevPageContent />
+    </Suspense>
+  );
+}
+
+function DevPageContent() {
   const searchParams = useSearchParams();
   const [cvData, setCvData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
