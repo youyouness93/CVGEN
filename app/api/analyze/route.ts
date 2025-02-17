@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Redis } from '@upstash/redis'
 import OpenAI from 'openai';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+import { prisma } from '@/lib/prisma';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -38,14 +32,10 @@ export async function POST(request: NextRequest) {
 
     console.log('Nouvelle entrée créée:', cv.id);
 
-    // Ajouter le job à la queue Redis
-    await redis.lpush('cv-queue', JSON.stringify({
-      id: cv.id,
-      cvData,
-      jobData
-    }));
-
-    console.log('Job ajouté à la queue:', cv.id);
+    // Lancer la génération en arrière-plan
+    generateCV(cv.id, cvData, jobData).catch(error => {
+      console.error('Erreur de génération en arrière-plan:', error);
+    });
 
     return NextResponse.json({ id: cv.id });
 
@@ -60,8 +50,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const id = url.searchParams.get('id');
+    const id = request.nextUrl.searchParams.get('id');
 
     if (!id) {
       return NextResponse.json(
@@ -70,11 +59,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('Recherche du CV:', id);
     const cv = await prisma.cV.findUnique({
       where: { id }
     });
 
     if (!cv) {
+      console.log('CV non trouvé:', id);
       return NextResponse.json(
         { error: 'CV non trouvé' },
         { status: 404 }
@@ -82,13 +73,10 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('CV trouvé:', id, 'Status:', cv.status);
-
     return NextResponse.json({
       status: cv.status,
       error: cv.error,
-      data: cv.status === 'completed' && typeof cv.optimizedCV === 'string' 
-        ? JSON.parse(cv.optimizedCV)
-        : null
+      data: cv.optimizedCV ? JSON.parse(cv.optimizedCV as string) : null
     });
 
   } catch (error: any) {
@@ -118,22 +106,31 @@ Ta tâche est d'analyser ces informations et de générer un nouveau CV au forma
 
 Instructions spécifiques :
 1. Génère le CV dans la langue de la description du poste
-2. Adapte FORTEMENT chaque section pour correspondre aux exigences du poste
+
+2. . Adaptation au poste  
+   - Reformule et ajuste chaque section pour mettre l’accent sur les compétences, mots-clés et exigences directement liés au poste.  
+   - Ton de rédaction professionnel et clair.  
+   - Mets en avant les réalisations pertinentes.  
+   - Utilise un **format chronologique inverse** (expériences les plus récentes en premier).
+
 3. estimela longueur du contenu et optimise la mise en page :
    - Si le contenu est court, ajuste les marges et espacements
    - Si le contenu est long, ajuste les marges et espacements
    - Ajoute une propriété "layout" dans le JSON avec les paramètres optimaux pour que le cv ne depasse pas 2 pages
-4. Pour la section "volunteerWork" :
-   - Même si ces informations ne sont pas dans le CV original, CRÉE des activités de bénévolat qui :
-   - Démontrent des compétences pertinentes pour le poste
-   - Sont réalistes et crédibles dans le contexte local
-   - Sont datées des 2-3 dernières années
-   - Montrent l'engagement communautaire du candidat
-5. Pour la section "hobbies" :
-   - CRÉE des loisirs et intérêts qui :
-   - Renforcent indirectement les compétences requises pour le poste
-   - Montrent des qualités personnelles valorisées (leadership, créativité, etc.)
-   - Sont spécifiques et détaillés
+
+**Section VolunteerWork (bénévolat)**  
+   - **Même si ces informations n’existent pas dans le CV original**, crée 1 à 2 expériences de bénévolat crédibles, localisées dans la région du candidat, datant des 2-3 dernières années.  
+   - Ces expériences doivent mettre en valeur des compétences pertinentes pour le poste et démontrer l’engagement communautaire du candidat.
+
+
+5. **Section Hobbies (loisirs)**  
+   - **Crée** 1 à 2 centres d’intérêts ou loisirs qui montrent des qualités ou compétences indirectement utiles pour le poste (leadership, créativité, esprit d’équipe, etc.).  
+   - Donne des descriptions **spécifiques** et **détaillées** (1-2 phrases) expliquant pourquoi ces hobbies sont utiles ou valorisants dans le contexte professionnel.
+
+6. - **Ne pas changer le domaine d’activité** : Conserve les mêmes titres de postes, périodes, entreprises, et contexte général (même secteur si mentionné) figurant dans le CV initial.  
+   - **Adapter les tâches et réalisations** : Reformule les responsabilités, missions et réalisations pour mieux correspondre aux exigences du poste à pourvoir, **mais sans créer de nouvelles expériences** qui n’existent pas.  
+   - **Pas de fictions dans l’expérience** : Ne crée pas de nouveaux postes, entreprises ou durées d’emploi qui ne figurent pas dans le CV d’origine.  
+   - **Possibilité d’ajouter/modifier les descriptions de tâches** : Si nécessaire, tu peux reformuler ou détailler les tâches pour les aligner avec l’offre d’emploi. 
 
 Points importants pour un CV canadien :
 1. Pas de photo
@@ -145,7 +142,7 @@ Points importants pour un CV canadien :
 
 Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun texte avant ou après :
 {
-  "language": "fr / en  selon la langue de la description du poste",
+  "language": " "fr" or "en" depending on  ${jobData.jobDescription} language",
   "layout": {
     "margins": {
       "top": "nombre en pixels",
@@ -291,24 +288,3 @@ Retourne UNIQUEMENT un objet JSON valide avec la structure suivante, sans aucun 
     });
   }
 }
-
-// Fonction pour traiter les jobs dans la queue Redis
-async function processQueue() {
-  while (true) {
-    const job = await redis.rpop('cv-queue');
-    if (!job) {
-      console.log('Aucun job dans la queue');
-      break;
-    }
-
-    try {
-      const { id, cvData, jobData } = JSON.parse(job);
-      await generateCV(id, cvData, jobData);
-    } catch (error: any) {
-      console.error('Erreur lors du traitement du job:', error);
-    }
-  }
-}
-
-// Démarrer le traitement de la queue
-processQueue();

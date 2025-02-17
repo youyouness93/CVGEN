@@ -12,7 +12,18 @@ const nextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-  }
+  },
+  env: {
+    BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:3000',
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.BACKEND_URL || 'http://localhost:3000'}/:path*`,
+      },
+    ]
+  },
 }
 
 mergeConfig(nextConfig, userConfig)
