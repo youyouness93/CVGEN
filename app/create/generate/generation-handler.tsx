@@ -10,7 +10,7 @@ import type { CVPDFProps } from '@/components/cv-pdf';
 type OptimizedCV = CVPDFProps['data'];
 
 const GENERATION_TIME = 35; // 35 secondes
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 export function GenerationHandler() {
   const [cvData] = useLocalStorage('cvData', null);
