@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { CVPDF } from '@/components/cv-pdf';
 import type { CVPDFProps } from '@/components/cv-pdf';
-import { PDFDownloadLink } from '@react-pdf/renderer';
 
 type OptimizedCV = CVPDFProps['data'];
 
@@ -129,22 +128,7 @@ export function GenerationHandler() {
   }
 
   if (generationComplete && optimizedCV) {
-    return (
-      <div>
-        <CVPDF data={optimizedCV} />
-        <div className="mt-8">
-          <PDFDownloadLink
-            document={<CVPDF data={optimizedCV} />}
-            fileName={`CV-${optimizedCV.personalInfo.name.replace(/\s+/g, '-')}.pdf`}
-            className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-center block mx-auto w-fit shadow-lg transition-colors"
-          >
-            {({ loading }) =>
-              loading ? 'Préparation du PDF...' : 'Télécharger le CV'
-            }
-          </PDFDownloadLink>
-        </div>
-      </div>
-    );
+    return <CVPDF data={optimizedCV} />;
   }
 
   return (

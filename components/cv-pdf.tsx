@@ -10,6 +10,7 @@ import {
   PDFViewer,
   PDFDownloadLink,
 } from '@react-pdf/renderer';
+import { DownloadButton } from './download-button';
 
 // Fonction pour détecter si on est sur mobile
 const isMobile = () => {
@@ -487,7 +488,7 @@ const CVDocument = ({ data }: CVPDFProps) => (
               <View>
                 <View style={styles.experienceHeader}>
                   <Text style={styles.experienceTitle}>{work.role}</Text>
-                  <Text style={styles.experienceDetails}>{work.period}</Text>
+                  <Text>{work.period}</Text>
                 </View>
                 <View style={styles.experienceDetails}>
                   <Text style={styles.experienceCompany}>{work.organization}</Text>
@@ -553,22 +554,17 @@ export function CVPDF({ data }: CVPDFProps) {
         <p className="text-center mb-4 text-gray-600">
           Pour une meilleure expérience sur mobile, nous vous recommandons de télécharger le CV directement.
         </p>
-        <PDFDownloadLink
-          document={<CVDocument data={data} />}
-          fileName={`CV-${data.personalInfo.name.replace(/\s+/g, '-')}.pdf`}
-          className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-center block mx-auto w-fit shadow-lg transition-colors"
-        >
-          {({ loading }) =>
-            loading ? 'Préparation du PDF...' : 'Télécharger le CV'
-          }
-        </PDFDownloadLink>
+        <DownloadButton data={data} />
       </div>
     );
   }
 
   return (
-    <PDFViewer style={{ width: '100%', height: '90vh' }}>
-      <CVDocument data={data} />
-    </PDFViewer>
+    <div className="flex flex-col gap-4">
+      <PDFViewer style={{ width: '100%', height: '80vh' }}>
+        <CVDocument data={data} />
+      </PDFViewer>
+      <DownloadButton data={data} />
+    </div>
   );
 }
