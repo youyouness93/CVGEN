@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   experienceCompany: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
   },
   experienceDetails: {
@@ -333,10 +333,11 @@ const CVDocument = ({ data }: CVPDFProps) => (
           <View>
             <View style={styles.experienceHeader}>
               <Text style={styles.experienceTitle}>{data.experience[0].title}</Text>
+              <Text style={styles.experienceDetails}>{data.experience[0].period}</Text>
             </View>
             <View style={styles.experienceDetails}>
               <Text style={styles.experienceCompany}>{data.experience[0].company} - {data.experience[0].location}</Text>
-              <Text>{data.experience[0].period}</Text>
+              
             </View>
             <View style={styles.achievementList}>
               {data.experience[0].achievements.map((achievement, i) => (
@@ -354,10 +355,11 @@ const CVDocument = ({ data }: CVPDFProps) => (
             <View>
               <View style={styles.experienceHeader}>
                 <Text style={styles.experienceTitle}>{exp.title}</Text>
+                <Text style={styles.experienceDetails}>{exp.period}</Text>
               </View>
               <View style={styles.experienceDetails}>
                 <Text style={styles.experienceCompany}>{exp.company} - {exp.location}</Text>
-                <Text>{exp.period}</Text>
+                
               </View>
               <View style={styles.achievementList}>
                 {exp.achievements.map((achievement, i) => (
@@ -384,10 +386,10 @@ const CVDocument = ({ data }: CVPDFProps) => (
                 <Text style={styles.experienceTitle}>
                   {data.education[0].degree} {data.education[0].field && `- ${data.education[0].field}`}
                 </Text>
+                <Text style={styles.experienceDetails}>{data.education[0].year}</Text>
               </View>
               <View style={styles.experienceDetails}>
                 <Text>{data.education[0].institution}</Text>
-                <Text>{data.education[0].year}</Text>
               </View>
               {data.education[0].highlights && (
                 <View style={styles.achievementList}>
@@ -409,10 +411,10 @@ const CVDocument = ({ data }: CVPDFProps) => (
                 <Text style={styles.experienceTitle}>
                   {edu.degree} {edu.field && `- ${edu.field}`}
                 </Text>
+                <Text style={styles.experienceDetails}>{edu.year}</Text>
               </View>
               <View style={styles.experienceDetails}>
                 <Text>{edu.institution}</Text>
-                <Text>{edu.year}</Text>
               </View>
               {edu.highlights && (
                 <View style={styles.achievementList}>
@@ -469,10 +471,11 @@ const CVDocument = ({ data }: CVPDFProps) => (
               <View>
                 <View style={styles.experienceHeader}>
                   <Text style={styles.experienceTitle}>{data.volunteerWork[0].role}</Text>
+                  <Text style={styles.experienceDetails}>{data.volunteerWork[0].period}</Text>
                 </View>
                 <View style={styles.experienceDetails}>
                   <Text style={styles.experienceCompany}>{data.volunteerWork[0].organization}</Text>
-                  <Text>{data.volunteerWork[0].period}</Text>
+                  
                 </View>
                 <Text style={styles.achievementItem}>{data.volunteerWork[0].description}</Text>
               </View>
@@ -484,10 +487,11 @@ const CVDocument = ({ data }: CVPDFProps) => (
               <View>
                 <View style={styles.experienceHeader}>
                   <Text style={styles.experienceTitle}>{work.role}</Text>
+                  <Text style={styles.experienceDetails}>{work.period}</Text>
                 </View>
                 <View style={styles.experienceDetails}>
                   <Text style={styles.experienceCompany}>{work.organization}</Text>
-                  <Text>{work.period}</Text>
+                  
                 </View>
                 <Text style={styles.achievementItem}>{work.description}</Text>
               </View>
