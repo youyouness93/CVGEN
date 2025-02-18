@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { CVPDF } from '@/components/cv-pdf';
-import { pdf } from '@react-pdf/renderer';
 import type { CVPDFProps } from '@/components/cv-pdf';
+import { pdf } from '@react-pdf/renderer';
 
 type OptimizedCV = CVPDFProps['data'];
 
@@ -129,40 +130,27 @@ export function GenerationHandler() {
 
   if (generationComplete && optimizedCV) {
     return (
-      <div>
-        <CVPDF data={optimizedCV} />
-        <div className="fixed bottom-8 right-8 flex gap-4">
+      <div className="w-full max-w-3xl mx-auto">
+        <div className="mb-4 flex justify-end">
           <button
             onClick={async () => {
-              try {
-                // Générer le PDF
-                const blob = await pdf(<CVPDF data={optimizedCV} />).toBlob();
-                // Créer une URL pour le blob
-                const url = URL.createObjectURL(blob);
-                // Créer un lien temporaire
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'cv.pdf';
-                // Déclencher le téléchargement
-                document.body.appendChild(link);
-                link.click();
-                // Nettoyer
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-              } catch (error) {
-                console.error('Erreur lors de la génération du PDF:', error);
-                alert('Une erreur est survenue lors de la génération du PDF.');
-              }
+              const blob = await pdf(<CVPDF data={optimizedCV} />).toBlob();
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = 'cv.pdf';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
             }}
-            className="rounded-full bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90 shadow-lg flex items-center gap-2"
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
             Télécharger le CV
           </button>
+        </div>
+        <div className="border rounded-lg shadow-lg overflow-hidden">
+          <CVPDF data={optimizedCV} />
         </div>
       </div>
     );
