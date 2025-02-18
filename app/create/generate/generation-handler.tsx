@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { CVPDF } from '@/components/cv-pdf';
+import { pdf } from '@react-pdf/renderer';
 import type { CVPDFProps } from '@/components/cv-pdf';
 
 type OptimizedCV = CVPDFProps['data'];
@@ -133,16 +133,26 @@ export function GenerationHandler() {
         <CVPDF data={optimizedCV} />
         <div className="fixed bottom-8 right-8 flex gap-4">
           <button
-            onClick={() => {
-              const cvBlob = new Blob([JSON.stringify(optimizedCV)], { type: 'application/json' });
-              const url = window.URL.createObjectURL(cvBlob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = 'cv.pdf';
-              document.body.appendChild(a);
-              a.click();
-              window.URL.revokeObjectURL(url);
-              document.body.removeChild(a);
+            onClick={async () => {
+              try {
+                // Générer le PDF
+                const blob = await pdf(<CVPDF data={optimizedCV} />).toBlob();
+                // Créer une URL pour le blob
+                const url = URL.createObjectURL(blob);
+                // Créer un lien temporaire
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'cv.pdf';
+                // Déclencher le téléchargement
+                document.body.appendChild(link);
+                link.click();
+                // Nettoyer
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error('Erreur lors de la génération du PDF:', error);
+                alert('Une erreur est survenue lors de la génération du PDF.');
+              }
             }}
             className="rounded-full bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90 shadow-lg flex items-center gap-2"
           >
