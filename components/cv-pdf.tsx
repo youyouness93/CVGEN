@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import {
   Document,
   Page,
@@ -6,7 +8,16 @@ import {
   View,
   StyleSheet,
   PDFViewer,
+  PDFDownloadLink,
 } from '@react-pdf/renderer';
+
+// Fonction pour détecter si on est sur mobile
+const isMobile = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    window.navigator.userAgent
+  );
+};
 
 // Définition des styles avec les tailles exactes demandées
 const styles = StyleSheet.create({
@@ -49,95 +60,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionHeader: {
-    marginBottom: 4,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    color: '#333333',
-    backgroundColor: '#f5f5f5',
-    padding: '4 8',
-    borderRadius: 4,
-  },
-  experienceItem: {
-    marginBottom: 12,
-    breakInside: 'avoid',
-  },
-  itemTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  itemSubtitle: {
-    fontSize: 11,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  itemContent: {
-    fontSize: 11,
-    lineHeight: 1.3,
-    marginBottom: 2,
-  },
-  bulletPoint: {
-    marginBottom: 1,
-    paddingLeft: 12,
-    position: 'relative',
-  },
-  bullet: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-  },
-  skills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  skill: {
-    fontSize: 11,
-    backgroundColor: '#f3f4f6',
-    padding: '4 8',
-    borderRadius: 4,
-  },
-  viewer: {
-    width: '100%',
-    height: '100vh',
-  },
-  skillsContainer: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  skillColumn: {
-    flex: 1,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#666666',
+    paddingBottom: 4,
   },
   experienceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   experienceTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    flex: 1,
   },
-  experienceDate: {
-    fontSize: 11,
+  experienceCompany: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  experienceDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
     color: '#666666',
-    textAlign: 'right',
   },
-  sectionGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: 12,
+  achievementList: {
+    marginLeft: 15,
   },
-  remainingItems: {
-    marginTop: 12,
-  },
-  bold: {
-    fontWeight: 'bold'
-  },
+  achievementItem: {
+    marginBottom: 4,
+    textAlign: 'justify',
+  }
 });
 
 export interface CVPDFProps {
@@ -217,279 +172,189 @@ export interface CVPDFProps {
   };
 }
 
-export function CVPDF({ data }: CVPDFProps) {
-  // Déterminer la langue du CV (par défaut en anglais)
-  const language = data.language || 'en';
-  const titles = {
-    professionalSummary: language === 'fr' ? 'Résumé professionnel' : 'Professional Summary',
-    skills: language === 'fr' ? 'Compétences' : 'Skills',
-    technicalSkills: language === 'fr' ? 'Compétences techniques' : 'Technical Skills',
-    softSkills: language === 'fr' ? 'Soft Skills' : 'Soft Skills',
-    languages: language === 'fr' ? 'Langues' : 'Languages',
-    experience: language === 'fr' ? 'Expérience professionnelle' : 'Work Experience',
-    education: language === 'fr' ? 'Formation' : 'Education',
-    certifications: language === 'fr' ? 'Certifications' : 'Certifications',
-    volunteerWork: language === 'fr' ? 'Bénévolat' : 'Volunteer Work',
-    hobbies: language === 'fr' ? 'Loisirs et Intérêts' : 'Hobbies and Interests',
-  };
+const CVDocument = ({ data }: CVPDFProps) => (
+  <Document>
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.name}>{data.personalInfo.name}</Text>
+          {data.personalInfo.title && (
+            <Text style={styles.title}>{data.personalInfo.title}</Text>
+          )}
+        </View>
+        <View style={styles.headerRight}>
+          <Text style={styles.contactItem}>{data.personalInfo.email}</Text>
+          <Text style={styles.contactItem}>{data.personalInfo.phone}</Text>
+          <Text style={styles.contactItem}>{data.personalInfo.location}</Text>
+          {data.personalInfo.linkedin && (
+            <Text style={styles.contactItem}>{data.personalInfo.linkedin}</Text>
+          )}
+        </View>
+      </View>
 
-  const layout = data.layout;
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>
+          {data.language === 'fr' ? 'Résumé Professionnel' : 'Professional Summary'}
+        </Text>
+        <Text style={styles.achievementItem}>{data.professionalSummary}</Text>
+      </View>
 
-  return (
-    <PDFViewer style={styles.viewer}>
-      <Document>
-        <Page size="A4" style={styles.page}>
-          {/* En-tête avec informations personnelles */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.name}>{data.personalInfo.name}</Text>
-              <Text style={styles.title}>
-                {data.personalInfo.title || 
-                 (data.jobData?.jobTitle || data.professionalSummary.split('.')[0])}
-              </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>
+          {data.language === 'fr' ? 'Compétences' : 'Skills'}
+        </Text>
+        <Text style={styles.achievementItem}>
+          {data.language === 'fr' ? 'Techniques: ' : 'Technical: '}
+          {data.skills.technical.join(', ')}
+        </Text>
+        <Text style={styles.achievementItem}>
+          {data.language === 'fr' ? 'Personnelles: ' : 'Soft Skills: '}
+          {data.skills.soft.join(', ')}
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>
+          {data.language === 'fr' ? 'Expérience Professionnelle' : 'Experience'}
+        </Text>
+        {data.experience.map((exp, index) => (
+          <View key={index} style={{ marginBottom: 10 }}>
+            <View style={styles.experienceHeader}>
+              <Text style={styles.experienceTitle}>{exp.title}</Text>
+              <Text style={styles.experienceCompany}>{exp.company}</Text>
             </View>
-            <View style={styles.headerRight}>
-              <Text style={styles.contactItem}>{data.personalInfo.phone}</Text>
-              <Text style={styles.contactItem}>{data.personalInfo.location}</Text>
-              <Text style={styles.contactItem}>{data.personalInfo.email}</Text>
-              {data.personalInfo.linkedin && (
-                <Text style={styles.contactItem}>{data.personalInfo.linkedin}</Text>
-              )}
+            <View style={styles.experienceDetails}>
+              <Text>{exp.location}</Text>
+              <Text>{exp.period}</Text>
             </View>
-          </View>
-
-          {/* Résumé professionnel */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{titles.professionalSummary}</Text>
-            <Text style={styles.itemContent}>{data.professionalSummary}</Text>
-          </View>
-
-          {/* Compétences */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{titles.skills}</Text>
-            <View style={styles.skillsContainer}>
-              <View style={styles.skillColumn}>
-                <Text style={styles.itemTitle}>Compétences techniques</Text>
-                <View style={styles.skills}>
-                  {data.skills.technical.map((skill, index) => (
-                    <Text key={index} style={styles.skill}>
-                      {skill}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-              <View style={styles.skillColumn}>
-                <Text style={styles.itemTitle}>Soft Skills</Text>
-                <View style={styles.skills}>
-                  {data.skills.soft.map((skill, index) => (
-                    <Text key={index} style={styles.skill}>
-                      {skill}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Langues */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{titles.languages}</Text>
-            <View style={styles.skills}>
-              {data.languages.map((lang, index) => (
-                <Text key={index} style={styles.skill}>
-                  {lang.language} - {lang.level}
+            <View style={styles.achievementList}>
+              {exp.achievements.map((achievement, i) => (
+                <Text key={i} style={styles.achievementItem}>
+                  • {achievement}
                 </Text>
               ))}
             </View>
           </View>
+        ))}
+      </View>
 
-          {/* Expérience professionnelle */}
-          {data.experience.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionGroup}>
-                <Text style={styles.sectionTitle}>{titles.experience}</Text>
-                <View style={{
-                  ...styles.experienceItem,
-                  marginBottom: 12
-                }}>
-                  <View style={styles.experienceHeader}>
-                    <Text style={styles.experienceTitle}>
-                      {data.experience[0].title} - {data.experience[0].company}
-                    </Text>
-                    <Text style={styles.experienceDate}>
-                      {data.experience[0].period}
-                    </Text>
-                  </View>
-                  <Text style={styles.itemSubtitle}>
-                    {data.experience[0].location}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>
+          {data.language === 'fr' ? 'Formation' : 'Education'}
+        </Text>
+        {data.education.map((edu, index) => (
+          <View key={index} style={{ marginBottom: 10 }}>
+            <View style={styles.experienceHeader}>
+              <Text style={styles.experienceTitle}>
+                {edu.degree} {edu.field && `- ${edu.field}`}
+              </Text>
+            </View>
+            <View style={styles.experienceDetails}>
+              <Text>{edu.institution}</Text>
+              <Text>{edu.year}</Text>
+            </View>
+            {edu.highlights && (
+              <View style={styles.achievementList}>
+                {edu.highlights.map((highlight, i) => (
+                  <Text key={i} style={styles.achievementItem}>
+                    • {highlight}
                   </Text>
-                  {data.experience[0].achievements.map((achievement, i) => (
-                    <View key={i} style={styles.bulletPoint}>
-                      <Text style={styles.bullet}>•</Text>
-                      <Text style={styles.itemContent}>{achievement}</Text>
-                    </View>
-                  ))}
-                </View>
+                ))}
               </View>
-              {data.experience.slice(1).map((exp, index) => (
-                <View 
-                  key={index} 
-                  style={{
-                    ...styles.experienceItem,
-                    ...(index < data.experience.length - 2 ? { marginBottom: 12 } : {})
-                  }}
-                >
-                  <View style={styles.experienceHeader}>
-                    <Text style={styles.experienceTitle}>
-                      {exp.title} - {exp.company}
-                    </Text>
-                    <Text style={styles.experienceDate}>
-                      {exp.period}
-                    </Text>
-                  </View>
-                  <Text style={styles.itemSubtitle}>
-                    {exp.location}
-                  </Text>
-                  {exp.achievements.map((achievement, i) => (
-                    <View key={i} style={styles.bulletPoint}>
-                      <Text style={styles.bullet}>•</Text>
-                      <Text style={styles.itemContent}>{achievement}</Text>
-                    </View>
-                  ))}
-                </View>
-              ))}
-            </View>
-          )}
+            )}
+          </View>
+        ))}
+      </View>
 
-          {/* Formation */}
-          {data.education.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionGroup} wrap={false}>
-                <Text style={styles.sectionTitle}>{titles.education}</Text>
-                <View style={{
-                  ...styles.experienceItem,
-                  marginBottom: 12
-                }}>
-                  <View style={styles.experienceHeader}>
-                    <Text style={styles.experienceTitle}>
-                      {data.education[0].degree} en {data.education[0].field}
-                    </Text>
-                    <Text style={styles.experienceDate}>
-                      {data.education[0].startDate} - {data.education[0].endDate}
-                    </Text>
-                  </View>
-                  <Text style={styles.itemSubtitle}>
-                    {data.education[0].institution} {data.education[0].location ? `• ${data.education[0].location}` : ''}
-                  </Text>
-                  {data.education[0].highlights?.map((highlight, i) => (
-                    <View key={i} style={styles.bulletPoint}>
-                      <Text style={styles.bullet}>•</Text>
-                      <Text style={styles.itemContent}>{highlight}</Text>
-                    </View>
-                  ))}
-                </View>
+      {data.certifications && data.certifications.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>
+            {data.language === 'fr' ? 'Certifications' : 'Certifications'}
+          </Text>
+          {data.certifications.map((cert, index) => (
+            <View key={index} style={{ marginBottom: 6 }}>
+              <Text style={styles.achievementItem}>
+                {cert.name} - {cert.issuer} ({cert.year})
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {data.volunteerWork && data.volunteerWork.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>
+            {data.language === 'fr' ? 'Bénévolat' : 'Volunteer Work'}
+          </Text>
+          {data.volunteerWork.map((work, index) => (
+            <View key={index} style={{ marginBottom: 8 }}>
+              <View style={styles.experienceHeader}>
+                <Text style={styles.experienceTitle}>{work.role}</Text>
+                <Text style={styles.experienceCompany}>{work.organization}</Text>
               </View>
-              {data.education.slice(1).map((edu, index) => (
-                <View 
-                  key={index} 
-                  style={{
-                    ...styles.experienceItem,
-                    ...(index < data.education.length - 2 ? { marginBottom: 12 } : {})
-                  }}
-                >
-                  <View style={styles.experienceHeader}>
-                    <Text style={styles.experienceTitle}>
-                      {edu.degree} en {edu.field}
-                    </Text>
-                    <Text style={styles.experienceDate}>
-                      {edu.startDate} - {edu.endDate}
-                    </Text>
-                  </View>
-                  <Text style={styles.itemSubtitle}>
-                    {edu.institution} {edu.location ? `• ${edu.location}` : ''}
-                  </Text>
-                  {edu.highlights?.map((highlight, i) => (
-                    <View key={i} style={styles.bulletPoint}>
-                      <Text style={styles.bullet}>•</Text>
-                      <Text style={styles.itemContent}>{highlight}</Text>
-                    </View>
-                  ))}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Certifications */}
-          {data.certifications && data.certifications.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionGroup} wrap={false}>
-                <Text style={styles.sectionTitle}>{titles.certifications}</Text>
-                <View style={{
-                  ...styles.experienceItem,
-                  marginBottom: 12
-                }}>
-                  <View style={styles.experienceHeader}>
-                    <Text style={styles.experienceTitle}>{data.certifications[0].name}</Text>
-                    <Text style={styles.experienceDate}>{data.certifications[0].year}</Text>
-                  </View>
-                  <Text style={styles.itemSubtitle}>
-                    {data.certifications[0].issuer}
-                  </Text>
-                </View>
+              <View style={styles.experienceDetails}>
+                <Text>{work.period}</Text>
               </View>
-              {data.certifications.slice(1).map((cert, index) => (
-                <View 
-                  key={index} 
-                  style={{
-                    ...styles.experienceItem,
-                    ...(index < data.certifications.length - 2 ? { marginBottom: 12 } : {})
-                  }}
-                >
-                  <View style={styles.experienceHeader}>
-                    <Text style={styles.experienceTitle}>{cert.name}</Text>
-                    <Text style={styles.experienceDate}>{cert.year}</Text>
-                  </View>
-                  <Text style={styles.itemSubtitle}>
-                    {cert.issuer}
-                  </Text>
-                </View>
-              ))}
+              <Text style={styles.achievementItem}>{work.description}</Text>
             </View>
-          )}
+          ))}
+        </View>
+      )}
 
-          {/* Bénévolat */}
-          {data.volunteerWork && data.volunteerWork.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{titles.volunteerWork}</Text>
-              {data.volunteerWork.map((work, index) => (
-                <View key={index} style={{ marginBottom: index < data.volunteerWork!.length - 1 ? 12 : 0 }}>
-                  <Text style={styles.itemTitle}>{work.role}</Text>
-                  <Text style={styles.itemSubtitle}>
-                    {work.organization} • {work.period}
-                  </Text>
-                  <Text style={styles.itemContent}>{work.description}</Text>
-                </View>
-              ))}
+      {data.hobbies && data.hobbies.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>
+            {data.language === 'fr' ? 'Centres d\'intérêt' : 'Hobbies'}
+          </Text>
+          {data.hobbies.map((hobby, index) => (
+            <View key={index} style={{ marginBottom: 6 }}>
+              <Text style={styles.achievementItem}>
+                <Text style={{ fontWeight: 'bold' }}>{hobby.category}: </Text>
+                {hobby.description}
+              </Text>
             </View>
-          )}
+          ))}
+        </View>
+      )}
+    </Page>
+  </Document>
+);
 
-          {/* Loisirs et Intérêts */}
-          {data.hobbies && data.hobbies.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{titles.hobbies}</Text>
-              {data.hobbies.map((hobby, index) => (
-                <View key={index} style={{ marginBottom: 8 }}>
-                  <Text style={{
-                    ...styles.itemContent,
-                    fontWeight: 'bold'
-                  }}>{hobby.category}</Text>
-                  <Text style={styles.itemContent}>{hobby.description}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </Page>
-      </Document>
+export function CVPDF({ data }: CVPDFProps) {
+  const [isClient, setIsClient] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    setIsMobileDevice(isMobile());
+  }, []);
+
+  if (!isClient) {
+    return <div>Chargement...</div>;
+  }
+
+  if (isMobileDevice) {
+    return (
+      <div className="p-4">
+        <p className="text-center mb-4 text-gray-600">
+          Pour une meilleure expérience sur mobile, nous vous recommandons de télécharger le CV directement.
+        </p>
+        <PDFDownloadLink
+          document={<CVDocument data={data} />}
+          fileName={`CV-${data.personalInfo.name.replace(/\s+/g, '-')}.pdf`}
+          className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-center block mx-auto w-fit shadow-lg transition-colors"
+        >
+          {({ loading }) =>
+            loading ? 'Préparation du PDF...' : 'Télécharger le CV'
+          }
+        </PDFDownloadLink>
+      </div>
+    );
+  }
+
+  return (
+    <PDFViewer style={{ width: '100%', height: '90vh' }}>
+      <CVDocument data={data} />
     </PDFViewer>
   );
 }
