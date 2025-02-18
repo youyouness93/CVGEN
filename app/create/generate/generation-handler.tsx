@@ -2,18 +2,19 @@
 
 import React from 'react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { CVPDF } from '@/components/cv-pdf';
+import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
 import type { CVPDFProps } from '@/components/cv-pdf';
-import { pdf } from '@react-pdf/renderer';
 
 type OptimizedCV = CVPDFProps['data'];
 
 const GENERATION_TIME = 35; // 35 secondes
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-export function GenerationHandler() {
+export default function GenerationHandler() {
   const [cvData] = useLocalStorage('cvData', null);
   const [jobData] = useLocalStorage('jobData', null);
   const [optimizedCV, setOptimizedCV] = useState<OptimizedCV | null>(null);
@@ -130,27 +131,35 @@ export function GenerationHandler() {
 
   if (generationComplete && optimizedCV) {
     return (
-      <div className="w-full max-w-3xl mx-auto">
-        <div className="mb-4 flex justify-end">
-          <button
-            onClick={async () => {
-              const blob = await pdf(<CVPDF data={optimizedCV} />).toBlob();
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = 'cv.pdf';
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
-            }}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-          >
-            Télécharger le CV
-          </button>
+      <div className="w-full max-w-4xl mx-auto p-4">
+        {/* Affichage du statut */}
+        <div className="mb-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">
+            Votre CV est prêt !
+          </h2>
         </div>
-        <div className="border rounded-lg shadow-lg overflow-hidden">
-          <CVPDF data={optimizedCV} />
+
+        {/* Affichage du CV */}
+        <div className="space-y-6">
+          {/* Aperçu mobile */}
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-8 max-w-[400px] mx-auto">
+            <PDFViewer width="100%" height={600} className="rounded-lg">
+              <CVPDF data={optimizedCV} />
+            </PDFViewer>
+          </div>
+
+          {/* Bouton de téléchargement */}
+          <div className="mt-6">
+            <PDFDownloadLink
+              document={<CVPDF data={optimizedCV} />}
+              fileName={`CV-${optimizedCV.personalInfo.name.replace(/\s+/g, '-')}.pdf`}
+              className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-center block mx-auto w-fit shadow-lg transition-colors"
+            >
+              {({ loading }) =>
+                loading ? 'Préparation du PDF...' : 'Télécharger le CV'
+              }
+            </PDFDownloadLink>
+          </div>
         </div>
       </div>
     );
