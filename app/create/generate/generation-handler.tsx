@@ -18,11 +18,9 @@ export default function GenerationHandler() {
   const [cvData] = useLocalStorage('cvData', null);
   const [jobData] = useLocalStorage('jobData', null);
   const [optimizedCV, setOptimizedCV] = useState<OptimizedCV | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [cvId, setCvId] = useState<string | null>(null);
-  const [generationStarted, setGenerationStarted] = useState(false);
   const [generationComplete, setGenerationComplete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'processing' | 'completed' | 'error'>('processing');
   const router = useRouter();
 
   useEffect(() => {
@@ -33,9 +31,8 @@ export default function GenerationHandler() {
   }, [cvData, jobData, router]);
 
   const startGeneration = async () => {
-    setGenerationStarted(true);
+    setStatus('processing');
     setError(null);
-    setProgress(0);
     setGenerationComplete(false);
 
     let animationFrame: number;
@@ -60,14 +57,12 @@ export default function GenerationHandler() {
         throw new Error(data.error || 'Erreur lors de la génération du CV');
       }
 
-      setCvId(data.id);
-
       // Démarrer l'animation de progression
       startTime = Date.now();
       const animate = () => {
         const elapsedTime = Date.now() - startTime;
         const newProgress = Math.min((elapsedTime / (GENERATION_TIME * 1000)) * 100, 99);
-        setProgress(newProgress);
+        console.log(`Progression : ${newProgress}%`);
 
         if (newProgress < 99) {
           animationFrame = requestAnimationFrame(animate);
@@ -88,8 +83,8 @@ export default function GenerationHandler() {
 
         if (statusData.status === 'completed') {
           setOptimizedCV(statusData.data);
-          setProgress(100);
           setGenerationComplete(true);
+          setStatus('completed');
           break;
         } else if (statusData.status === 'error') {
           throw new Error(statusData.error || 'Erreur lors de la génération');
@@ -98,7 +93,7 @@ export default function GenerationHandler() {
     } catch (err) {
       console.error('Erreur:', err);
       setError(err instanceof Error ? err.message : 'Erreur inattendue');
-      setGenerationStarted(false);
+      setStatus('error');
     } finally {
       if (animationFrame) {
         cancelAnimationFrame(animationFrame);
@@ -108,10 +103,8 @@ export default function GenerationHandler() {
 
   const handleRetry = () => {
     setError(null);
-    setGenerationStarted(false);
-    setProgress(0);
+    setStatus('processing');
     setGenerationComplete(false);
-    setCvId(null);
   };
 
   if (error) {
@@ -167,7 +160,19 @@ export default function GenerationHandler() {
 
   return (
     <div className="rounded-lg border bg-card p-8">
-      {!generationStarted ? (
+      {status === 'processing' ? (
+        <div className="space-y-4">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full bg-primary transition-all duration-500"
+              style={{ width: '50%' }}
+            />
+          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            Génération en cours...
+          </p>
+        </div>
+      ) : (
         <div className="text-center">
           <h3 className="mb-4 text-xl font-semibold">Prêt à générer votre CV ?</h3>
           <p className="mb-6 text-muted-foreground">
@@ -180,20 +185,6 @@ export default function GenerationHandler() {
           >
             Générer mon CV
           </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-            <div
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-center text-sm text-muted-foreground">
-            {progress < 100
-              ? `Génération en cours... ${Math.round(progress)}%`
-              : 'Finalisation...'}
-          </p>
         </div>
       )}
     </div>
