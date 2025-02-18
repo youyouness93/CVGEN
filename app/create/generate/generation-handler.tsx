@@ -128,7 +128,34 @@ export function GenerationHandler() {
   }
 
   if (generationComplete && optimizedCV) {
-    return <CVPDF data={optimizedCV} />;
+    return (
+      <div>
+        <CVPDF data={optimizedCV} />
+        <div className="fixed bottom-8 right-8 flex gap-4">
+          <button
+            onClick={() => {
+              const cvBlob = new Blob([JSON.stringify(optimizedCV)], { type: 'application/json' });
+              const url = window.URL.createObjectURL(cvBlob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'cv.pdf';
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+            }}
+            className="rounded-full bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90 shadow-lg flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Télécharger le CV
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
