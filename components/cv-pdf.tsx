@@ -103,7 +103,56 @@ const styles = StyleSheet.create({
   achievementItem: {
     marginBottom: 4,
     textAlign: 'justify',
-  }
+  },
+  skillsContainer: {
+    marginTop: 4,
+  },
+  skillCategory: {
+    marginBottom: 8,
+  },
+  skillCategoryTitle: {
+    fontSize: 11,
+    color: '#444444',
+    marginBottom: 4,
+    borderBottom: '1px solid #cccccc',
+    paddingBottom: 2,
+  },
+  skillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginLeft: -4,
+    marginRight: -4,
+  },
+  skillItem: {
+    backgroundColor: '#f5f5f5',
+    padding: '3 8',
+    margin: 4,
+    borderRadius: 3,
+    fontSize: 10,
+  },
+  languageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  languageName: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginRight: 8,
+    width: '30%',
+  },
+  languageLevel: {
+    fontSize: 10,
+    color: '#444444',
+    flex: 1,
+  },
+  languageDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#666666',
+    marginHorizontal: 4,
+  },
 });
 
 export interface CVPDFProps {
@@ -212,35 +261,41 @@ const CVDocument = ({ data }: CVPDFProps) => (
         <Text style={styles.achievementItem}>{data.professionalSummary}</Text>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderWithContent}>
-          <Text style={{ ...styles.sectionHeader, borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 }}>
-            {data.language === 'fr' ? 'Compétences' : 'Skills'}
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 20 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 4 }}>
-              {data.language === 'fr' ? 'Techniques:' : 'Technical:'}
+      {data.skills && (data.skills.technical.length > 0 || data.skills.soft.length > 0) && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderWithContent}>
+            <Text style={{ ...styles.sectionHeader, borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 }}>
+              {data.language === 'fr' ? 'Compétences' : 'Skills'}
             </Text>
-            {data.skills.technical.map((skill, i) => (
-              <Text key={i} style={styles.achievementItem}>
-                • {skill}
-              </Text>
-            ))}
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 4 }}>
-              {data.language === 'fr' ? 'Personnelles:' : 'Soft Skills:'}
-            </Text>
-            {data.skills.soft.map((skill, i) => (
-              <Text key={i} style={styles.achievementItem}>
-                • {skill}
+          <View style={{ flexDirection: 'row', marginTop: 4, gap: 40 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: '#444444', marginBottom: 6, borderBottom: '1px solid #cccccc', paddingBottom: 2 }}>
+                {data.language === 'fr' ? 'Techniques' : 'Technical'}
               </Text>
-            ))}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {data.skills.technical.map((skill, i) => (
+                  <View key={i} style={{ backgroundColor: '#f5f5f5', padding: '2 8', borderRadius: 3 }}>
+                    <Text style={{ fontSize: 10 }}>{skill}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: '#444444', marginBottom: 6, borderBottom: '1px solid #cccccc', paddingBottom: 2 }}>
+                {data.language === 'fr' ? 'Personnelles' : 'Soft Skills'}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {data.skills.soft.map((skill, i) => (
+                  <View key={i} style={{ backgroundColor: '#f5f5f5', padding: '2 8', borderRadius: 3 }}>
+                    <Text style={{ fontSize: 10 }}>{skill}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
       {data.languages && data.languages.length > 0 && (
         <View style={styles.section}>
@@ -250,70 +305,50 @@ const CVDocument = ({ data }: CVPDFProps) => (
                 {data.language === 'fr' ? 'Langues' : 'Languages'}
               </Text>
             </View>
-            <View style={{ marginTop: 4, marginBottom: 0 }}>
-              {data.languages.length <= 3 ? (
-                // Si 3 langues ou moins, une seule ligne
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  {data.languages.map((lang, index) => (
-                    <Text key={index} style={styles.achievementItem}>
-                      <Text style={{ fontWeight: 'bold' }}>{lang.language}: </Text>
-                      {lang.level}
-                    </Text>
-                  ))}
+            <View style={{ marginTop: 4, flexDirection: 'row', justifyContent: 'space-between' }}>
+              {data.languages.map((lang, index) => (
+                <View key={index} style={{ backgroundColor: '#f5f5f5', padding: '4 12', borderRadius: 3 }}>
+                  <Text style={{ fontSize: 10 }}>
+                    <Text style={{ fontWeight: 'bold' }}>{lang.language}</Text>
+                    <Text style={{ color: '#666666' }}> • {lang.level}</Text>
+                  </Text>
                 </View>
-              ) : (
-                // Si plus de 3 langues, deux lignes
-                <View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    {data.languages.slice(0, Math.ceil(data.languages.length / 2)).map((lang, index) => (
-                      <Text key={index} style={styles.achievementItem}>
-                        <Text style={{ fontWeight: 'bold' }}>{lang.language}: </Text>
-                        {lang.level}
-                      </Text>
-                    ))}
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    {data.languages.slice(Math.ceil(data.languages.length / 2)).map((lang, index) => (
-                      <Text key={index} style={styles.achievementItem}>
-                        <Text style={{ fontWeight: 'bold' }}>{lang.language}: </Text>
-                        {lang.level}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              )}
+              ))}
             </View>
           </View>
         </View>
       )}
 
-      <View style={styles.section}>
-        <View wrap={false} style={{ marginBottom: 8 }}>
+        {/* Uniquement le titre avec wrap={false} */}
+        <View wrap={false} style={{ marginBottom: 4 }}>
           <View style={styles.sectionHeaderWithContent}>
             <Text style={{ ...styles.sectionHeader, borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 }}>
               {data.language === 'fr' ? 'Expérience Professionnelle' : 'Experience'}
             </Text>
           </View>
-          <View style={{ marginTop: 4, marginBottom: 0 }}>
-            <View>
-              <View style={styles.experienceHeader}>
-                <Text style={styles.experienceTitle}>{data.experience[0].title}</Text>
-              </View>
-              <View style={styles.experienceDetails}>
-                <Text style={styles.experienceCompany}>{data.experience[0].company} - {data.experience[0].location}</Text>
-                <Text>{data.experience[0].period}</Text>
-              </View>
-              <View style={styles.achievementList}>
-                {data.experience[0].achievements.map((achievement, i) => (
-                  <Text key={i} style={styles.achievementItem}>
-                    • {achievement}
-                  </Text>
-                ))}
-              </View>
+        </View>
+
+        {/* Première expérience */}
+        <View wrap={false} style={{ marginBottom: 8 }}>
+          <View>
+            <View style={styles.experienceHeader}>
+              <Text style={styles.experienceTitle}>{data.experience[0].title}</Text>
+            </View>
+            <View style={styles.experienceDetails}>
+              <Text style={styles.experienceCompany}>{data.experience[0].company} - {data.experience[0].location}</Text>
+              <Text>{data.experience[0].period}</Text>
+            </View>
+            <View style={styles.achievementList}>
+              {data.experience[0].achievements.map((achievement, i) => (
+                <Text key={i} style={styles.achievementItem}>
+                  • {achievement}
+                </Text>
+              ))}
             </View>
           </View>
         </View>
 
+        {/* Autres expériences */}
         {data.experience.slice(1).map((exp, index) => (
           <View key={index} wrap={false} style={{ marginBottom: 8 }}>
             <View>
@@ -334,7 +369,7 @@ const CVDocument = ({ data }: CVPDFProps) => (
             </View>
           </View>
         ))}
-      </View>
+      
 
       <View style={styles.section}>
         <View wrap={false} style={{ marginBottom: 8 }}>
