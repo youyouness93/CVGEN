@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CVDocument } from './cv-pdf';
 import type { CVPDFProps } from './cv-pdf';
@@ -11,6 +11,16 @@ interface DownloadButtonProps {
 }
 
 export function DownloadButton({ data, className = '' }: DownloadButtonProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <PDFDownloadLink
       document={<CVDocument data={data} />}

@@ -545,7 +545,11 @@ export function CVPDF({ data }: CVPDFProps) {
   }, []);
 
   if (!isClient) {
-    return <div>Chargement...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-pulse text-gray-600">Chargement...</div>
+      </div>
+    );
   }
 
   if (isMobileDevice) {
@@ -561,9 +565,11 @@ export function CVPDF({ data }: CVPDFProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PDFViewer style={{ width: '100%', height: '80vh' }}>
-        <CVDocument data={data} />
-      </PDFViewer>
+      <div className="h-[80vh] w-full">
+        <PDFViewer style={{ width: '100%', height: '100%' }}>
+          <CVDocument data={data} />
+        </PDFViewer>
+      </div>
       <DownloadButton data={data} />
     </div>
   );
