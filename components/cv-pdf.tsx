@@ -11,14 +11,6 @@ import {
   PDFDownloadLink,
 } from '@react-pdf/renderer';
 
-// Fonction pour détecter si on est sur mobile
-const isMobile = () => {
-  if (typeof window === 'undefined') return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    window.navigator.userAgent
-  );
-};
-
 // Définition des styles avec les tailles exactes demandées
 const styles = StyleSheet.create({
   page: {
@@ -536,39 +528,29 @@ const CVDocument = ({ data }: CVPDFProps) => (
 
 export function CVPDF({ data }: CVPDFProps) {
   const [isClient, setIsClient] = useState(false);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    setIsMobileDevice(isMobile());
   }, []);
 
   if (!isClient) {
     return <div>Chargement...</div>;
   }
 
-  if (isMobileDevice) {
-    return (
-      <div className="p-4">
-        <p className="text-center mb-4 text-gray-600">
-          Pour une meilleure expérience sur mobile, nous vous recommandons de télécharger le CV directement.
-        </p>
-        <PDFDownloadLink
-          document={<CVDocument data={data} />}
-          fileName={`CV-${data.personalInfo.name.replace(/\s+/g, '-')}.pdf`}
-          className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-center block mx-auto w-fit shadow-lg transition-colors"
-        >
-          {({ loading }) =>
-            loading ? 'Préparation du PDF...' : 'Télécharger le CV'
-          }
-        </PDFDownloadLink>
-      </div>
-    );
-  }
-
   return (
-    <PDFViewer style={{ width: '100%', height: '90vh' }}>
-      <CVDocument data={data} />
-    </PDFViewer>
+    <div className="flex flex-col items-center justify-center gap-6 p-4">
+      <PDFDownloadLink
+        document={<CVDocument data={data} />}
+        fileName={`CV-${data.personalInfo.name.replace(/\s+/g, '-')}.pdf`}
+        className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold text-center shadow-lg transition-colors"
+      >
+        {({ loading }) =>
+          loading ? 'Préparation du PDF...' : 'Télécharger le CV'
+        }
+      </PDFDownloadLink>
+      <p className="text-center text-sm text-gray-600">
+        Votre CV a été généré avec succès. Cliquez sur le bouton ci-dessus pour le télécharger.
+      </p>
+    </div>
   );
 }
