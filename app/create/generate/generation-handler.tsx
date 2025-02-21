@@ -97,7 +97,11 @@ export function GenerationHandler() {
       }
 
       const data = await response.json();
-      setCvId(data.cvId);
+      console.log('Réponse de l\'API analyze:', data);
+      if (!data.id) {
+        throw new Error("ID du CV manquant dans la réponse");
+      }
+      setCvId(data.id);
 
       startTime = performance.now();
       const animate = (currentTime: number) => {
@@ -111,8 +115,9 @@ export function GenerationHandler() {
       };
       animationFrame = requestAnimationFrame(animate);
 
-      const optimizedResponse = await fetch(`${BACKEND_URL}/cv/${data.cvId}`);
+      const optimizedResponse = await fetch(`${BACKEND_URL}/cv/${cvId}`);
       if (!optimizedResponse.ok) {
+        console.error('Erreur de récupération du CV:', await optimizedResponse.text());
         throw new Error("Erreur lors de la récupération du CV optimisé");
       }
 
