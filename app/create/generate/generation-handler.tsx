@@ -64,69 +64,68 @@ export function GenerationHandler() {
     setError(null);
     setProgress(0);
     setGenerationComplete(false);
-    setCurrentStep(0);
 
     let animationFrame: number;
     let startTime: number;
 
     try {
-      if (!jobData) {
-        throw new Error("Aucune donnée de poste n'a été trouvée");
-      }
-
-      if (!cvData) {
-        throw new Error("Aucune donnée de CV n'a été trouvée");
-      }
-
-      const requestData = {
-        cv: cvData,
-        jobDescription: jobData.jobDescription,
-        jobTitle: jobData.jobTitle,
-      };
-      
-      console.log('CV Data:', cvData);
-      console.log('Job Data:', jobData);
-      console.log('Données envoyées:', requestData);
+      console.log('Envoi des données au backend:', {
+        cvDataPresent: !!cvData,
+        jobDataPresent: !!jobData,
+        backendUrl: BACKEND_URL
+      });
 
       const response = await fetch(`${BACKEND_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify({ cvData, jobData }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erreur serveur:', errorText);
-        throw new Error("Erreur lors de la génération du CV");
+      const data = await response.json();
+
+      if (!response.ok || !data.id) {
+        throw new Error(data.error || 'Erreur lors de la génération du CV');
       }
 
-      const data = await response.json();
-      setCvId(data.cvId);
+      setCvId(data.id);
 
-      startTime = performance.now();
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min((elapsed / (GENERATION_TIME * 1000)) * 100, 99);
-        setProgress(progress);
+      // Démarrer l'animation de progression
+      startTime = Date.now();
+      const animate = () => {
+        const elapsedTime = Date.now() - startTime;
+        const newProgress = Math.min((elapsedTime / (GENERATION_TIME * 1000)) * 100, 99);
+        setProgress(newProgress);
 
-        if (progress < 99) {
+        if (newProgress < 99) {
           animationFrame = requestAnimationFrame(animate);
         }
       };
       animationFrame = requestAnimationFrame(animate);
 
-      const optimizedResponse = await fetch(`${BACKEND_URL}/cv/${data.cvId}`);
-      if (!optimizedResponse.ok) {
-        throw new Error("Erreur lors de la récupération du CV optimisé");
-      }
+      // Polling pour vérifier le statut
+      while (!generationComplete) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Attendre 2 secondes
 
-      const optimizedData = await optimizedResponse.json();
-      setOptimizedCV(optimizedData);
-      setProgress(100);
-      setGenerationComplete(true);
+        const statusResponse = await fetch(`${BACKEND_URL}/analyze?id=${data.id}`);
+        const statusData = await statusResponse.json();
+
+        if (!statusResponse.ok) {
+          throw new Error(statusData.error || 'Erreur lors de la vérification du statut');
+        }
+
+        if (statusData.status === 'completed') {
+          setOptimizedCV(statusData.data);
+          setProgress(100);
+          setGenerationComplete(true);
+          break;
+        } else if (statusData.status === 'error') {
+          throw new Error(statusData.error || 'Erreur lors de la génération');
+        }
+      }
     } catch (err) {
       console.error('Erreur:', err);
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(err instanceof Error ? err.message : 'Erreur inattendue');
+      setGenerationStarted(false);
     } finally {
       if (animationFrame) {
         cancelAnimationFrame(animationFrame);
