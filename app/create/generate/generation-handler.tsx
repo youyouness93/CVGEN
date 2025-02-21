@@ -12,6 +12,11 @@ import { AlertCircle, Download, Loader2, Sparkles, Wand2, FileCheck, Bot } from 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface JobData {
+  jobTitle: string;
+  jobDescription: string;
+}
+
 type OptimizedCV = CVPDFProps['data'];
 
 const GENERATION_TIME = 35; // 35 secondes
@@ -28,7 +33,7 @@ const generateSteps = [
 
 export function GenerationHandler() {
   const [cvData] = useLocalStorage('cvData', null);
-  const [jobData] = useLocalStorage('jobData', null);
+  const [jobData] = useLocalStorage<JobData | null>('jobData', null);
   const [optimizedCV, setOptimizedCV] = useState<OptimizedCV | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +70,10 @@ export function GenerationHandler() {
     let startTime: number;
 
     try {
+      if (!jobData) {
+        throw new Error("Aucune donnée de poste n'a été trouvée");
+      }
+
       const response = await fetch(`${BACKEND_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
