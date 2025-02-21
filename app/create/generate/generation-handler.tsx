@@ -74,13 +74,21 @@ export function GenerationHandler() {
         throw new Error("Aucune donnée de poste n'a été trouvée");
       }
 
+      if (!cvData) {
+        throw new Error("Aucune donnée de CV n'a été trouvée");
+      }
+
+      console.log('Données envoyées au serveur:', {
+        cvData,
+        jobData
+      });
+
       const response = await fetch(`${BACKEND_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cv: cvData,
-          jobDescription: jobData.jobDescription,
-          jobTitle: jobData.jobTitle,
+          cvData,
+          jobData
         }),
       });
 
