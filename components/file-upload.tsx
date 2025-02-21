@@ -49,20 +49,21 @@ export function FileUpload({ onFileAccepted }: FileUploadProps) {
         setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue")
       }
     },
-    [onFileAccepted],
+    [onFileAccepted]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
     },
-    maxFiles: 1,
-    multiple: false,
+    maxSize: 10485760, // 10MB
+    maxFiles: 1
   })
 
-  const resetUpload = () => {
+  const removeFile = () => {
     setCurrentFile(null)
     setUploadStatus("idle")
     setUploadProgress(0)
@@ -70,81 +71,85 @@ export function FileUpload({ onFileAccepted }: FileUploadProps) {
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto space-y-6">
-      {uploadStatus === "idle" && (
-        <div
-          {...getRootProps()}
-          className={cn(
-            "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-            isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
-          )}
-        >
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center gap-2">
-            <Upload
-              className={cn(
-                "h-10 w-10 mb-2 transition-colors",
-                isDragActive ? "text-primary" : "text-muted-foreground",
-              )}
-            />
-            <p className="text-lg font-medium">
-              {isDragActive ? "Déposez votre CV ici" : "Glissez-déposez votre CV ici"}
-            </p>
-            <p className="text-sm text-muted-foreground">ou cliquez pour parcourir</p>
-          </div>
-          <div className="mt-4 text-sm text-muted-foreground">Formats acceptés : PDF, DOCX</div>
-        </div>
+    <div className="w-full space-y-4">
+      {uploadStatus === "error" && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erreur</AlertTitle>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
       )}
 
-      {uploadStatus === "uploading" && currentFile && (
-        <div className="border rounded-lg p-6 space-y-4">
-          <div className="flex items-center gap-4">
-            <FileText className="h-8 w-8 text-primary" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{currentFile.name}</p>
-              <p className="text-sm text-muted-foreground">{(currentFile.size / 1024 / 1024).toFixed(2)} MB</p>
+      {uploadStatus === "success" ? (
+        <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-900/30 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div>
+                <p className="text-sm font-medium text-green-900 dark:text-green-300">{currentFile?.name}</p>
+                <p className="text-sm text-green-700 dark:text-green-400">Fichier téléversé avec succès</p>
+              </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              onClick={resetUpload}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-green-700 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+              onClick={removeFile}
             >
               <X className="h-4 w-4" />
-              <span className="sr-only">Annuler</span>
             </Button>
           </div>
-          <Progress value={uploadProgress} className="h-2" />
-          <p className="text-sm text-muted-foreground">Téléversement en cours... {uploadProgress}%</p>
+        </div>
+      ) : (
+        <div
+          {...getRootProps()}
+          className={cn(
+            "border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center transition-colors duration-200",
+            "hover:border-blue-500 dark:hover:border-blue-400",
+            isDragActive && "border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/20"
+          )}
+        >
+          <input {...getInputProps()} />
+          <div className="mb-8">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-100 via-white to-blue-50 dark:from-blue-900/50 dark:via-gray-800 dark:to-blue-900/30 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-200 shadow-lg">
+              <Upload className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-2xl font-semibold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-800 to-gray-900 dark:from-white dark:via-blue-400 dark:to-white">
+              {isDragActive ? "Déposez votre CV ici" : "Glissez votre CV ici"}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              ou utilisez le bouton ci-dessous pour sélectionner un fichier
+            </p>
+            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-xl hover:shadow-blue-500/20 transform hover:scale-105 transition-all duration-200 min-w-[200px] group">
+              <FileText className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+              Parcourir les fichiers
+            </Button>
+          </div>
+          <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 py-2 px-4 rounded-full">
+            <span className="flex items-center gap-1">
+              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" /> PDF
+            </span>
+            <span className="flex items-center gap-1">
+              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" /> DOCX
+            </span>
+            <span className="flex items-center gap-1">
+              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" /> DOC
+            </span>
+            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <span>Max 10MB</span>
+          </div>
         </div>
       )}
 
-      {uploadStatus === "success" && currentFile && (
-        <Alert className="border-success text-success">
-          <CheckCircle className="h-4 w-4" />
-          <AlertTitle>Téléversement réussi</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span>{currentFile.name}</span>
-            <Button variant="outline" size="sm" onClick={resetUpload}>
-              Changer de fichier
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {uploadStatus === "error" && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erreur de téléversement</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span>{errorMessage}</span>
-            <Button variant="outline" size="sm" onClick={resetUpload}>
-              Réessayer
-            </Button>
-          </AlertDescription>
-        </Alert>
+      {uploadStatus === "uploading" && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-700 dark:text-gray-300">Téléversement en cours...</span>
+            <span className="text-gray-700 dark:text-gray-300">{uploadProgress}%</span>
+          </div>
+          <Progress value={uploadProgress} className="h-2" />
+        </div>
       )}
     </div>
   )
 }
-
