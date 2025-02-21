@@ -78,22 +78,25 @@ export function GenerationHandler() {
         throw new Error("Aucune donnée de CV n'a été trouvée");
       }
 
-      console.log('Données envoyées au serveur:', {
-        cvData,
-        jobData
-      });
+      const requestData = {
+        cv: cvData,
+        jobDescription: jobData.jobDescription,
+        jobTitle: jobData.jobTitle,
+      };
+      
+      console.log('CV Data:', cvData);
+      console.log('Job Data:', jobData);
+      console.log('Données envoyées:', requestData);
 
       const response = await fetch(`${BACKEND_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cv: cvData,
-          jobDescription: jobData.jobDescription,
-          jobTitle: jobData.jobTitle,
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erreur serveur:', errorText);
         throw new Error("Erreur lors de la génération du CV");
       }
 
