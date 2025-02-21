@@ -135,7 +135,7 @@ export default function GeneratePage() {
             >
               
               <div className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl p-8 md:p-12 rounded-2xl shadow-2xl border  shadow-lg">
-                <GenerationHandler key={Date.now()} />
+                <GenerationHandler/>
               </div>
             </motion.div>
           </div>
