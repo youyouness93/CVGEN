@@ -12,6 +12,8 @@ import { AlertCircle, Download, Loader2, Sparkles, Wand2, FileCheck, Bot } from 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from "@/context/language-context";
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { CVDocument } from '@/components/cv-pdf';
 
 interface JobData {
   jobTitle: string;
@@ -41,7 +43,8 @@ const texts = {
     download: "Télécharger mon CV",
     regenerate: "Générer à nouveau",
     aiAssistant: "Assistant IA",
-    targetJob: "Poste ciblé :"
+    targetJob: "Poste ciblé :",
+    preparingPdf: "Préparation du PDF..."
   },
   en: {
     generating: "Generating...",
@@ -51,7 +54,8 @@ const texts = {
     download: "Download my CV",
     regenerate: "Generate again",
     aiAssistant: "AI Assistant",
-    targetJob: "Target Position:"
+    targetJob: "Target Position:",
+    preparingPdf: "Preparing PDF..."
   }
 };
 
@@ -290,17 +294,34 @@ export function GenerationHandler() {
                   animate: { opacity: 1, y: 0 }
                 }}
               >
-                <Button
-                  onClick={() => window.open(`${BACKEND_URL}/cv/${cvId}/download`, '_blank')}
-                  size="lg"
-                  className="relative w-full md:w-auto bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-xl hover:shadow-blue-500/20 transform hover:scale-105 transition-all duration-200 overflow-hidden group"
+                <PDFDownloadLink
+                  document={<CVDocument data={optimizedCV} />}
+                  fileName={`CV-${optimizedCV?.personalInfo?.name?.replace(/\s+/g, '-') || 'generated'}.pdf`}
+                  className="w-full md:w-auto"
                 >
-                  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-shimmer"></div>
-                  <div className="relative flex items-center justify-center gap-2">
-                    <Download className="w-5 h-5 transition-transform group-hover:translate-y-1" />
-                    {texts[language].download}
-                  </div>
-                </Button>
+                  {({ loading }) => (
+                    <Button
+                      size="lg"
+                      className="relative w-full md:w-auto bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-xl hover:shadow-blue-500/20 transform hover:scale-105 transition-all duration-200 overflow-hidden group"
+                      disabled={loading}
+                    >
+                      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-shimmer"></div>
+                      <div className="relative flex items-center justify-center gap-2">
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            {texts[language].preparingPdf}
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-5 h-5 transition-transform group-hover:translate-y-1" />
+                            {texts[language].download}
+                          </>
+                        )}
+                      </div>
+                    </Button>
+                  )}
+                </PDFDownloadLink>
               </motion.div>
             </motion.div>
 

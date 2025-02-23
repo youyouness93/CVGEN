@@ -224,7 +224,7 @@ export interface CVPDFProps {
   };
 }
 
-const CVDocument = ({ data }: CVPDFProps) => (
+export const CVDocument = ({ data }: CVPDFProps) => (
   <Document>
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
