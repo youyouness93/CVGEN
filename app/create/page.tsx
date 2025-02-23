@@ -6,8 +6,26 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { UploadHandler } from "./upload-handler"
+import { useLanguage } from "@/context/language-context"
 
 export default function CreatePage() {
+  const { language } = useLanguage()
+
+  const features = {
+    fr: [
+      "Analyser la structure et le contenu de votre CV",
+      "Identifier vos compétences clés et réalisations",
+      "Optimiser le contenu pour les systèmes ATS",
+      "Préparer les données pour la génération du nouveau CV"
+    ],
+    en: [
+      "Analyze your CV structure and content",
+      "Identify your key skills and achievements",
+      "Optimize content for ATS systems",
+      "Prepare data for new CV generation"
+    ]
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -17,14 +35,16 @@ export default function CreatePage() {
           <div className="text-center mb-16">
             <div className="inline-block rounded-full bg-blue-100 dark:bg-blue-900/50 px-4 py-1.5 mb-4">
               <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                Étape 1/3
+                {language === 'fr' ? 'Étape 1/3' : 'Step 1/3'}
               </span>
             </div>
             <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-800 to-gray-900 dark:from-white dark:via-blue-400 dark:to-white">
-              Importez votre CV actuel
+              {language === 'fr' ? 'Importez votre CV actuel' : 'Import your current CV'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg">
-              Pour commencer, téléchargez votre CV existant. Notre IA analysera son contenu pour créer une version optimisée qui mettra en valeur vos compétences.
+              {language === 'fr' 
+                ? "Pour commencer, téléchargez votre CV existant. Notre IA analysera son contenu pour créer une version optimisée qui mettra en valeur vos compétences."
+                : "To get started, upload your existing CV. Our AI will analyze its content to create an optimized version that will highlight your skills."}
             </p>
           </div>
 
@@ -38,14 +58,9 @@ export default function CreatePage() {
                 {/* Features List */}
                 <div className="mt-8 grid gap-4">
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                    Ce que notre IA va faire pour vous :
+                    {language === 'fr' ? 'Ce que notre IA va faire pour vous :' : 'What our AI will do for you:'}
                   </h4>
-                  {[
-                    "Analyser la structure et le contenu de votre CV",
-                    "Identifier vos compétences clés et réalisations",
-                    "Optimiser le contenu pour les systèmes ATS",
-                    "Préparer les données pour la génération du nouveau CV"
-                  ].map((feature, i) => (
+                  {features[language].map((feature, i) => (
                     <div key={i} className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
                       <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                       <span>{feature}</span>
@@ -63,15 +78,17 @@ export default function CreatePage() {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 text-center md:text-left">
                     <div>
                       <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-800 to-gray-900 dark:from-white dark:via-blue-400 dark:to-white mb-2 md:mb-0">
-                        Pas encore de CV ?
+                        {language === 'fr' ? 'Pas encore de CV ?' : 'No CV yet?'}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Commencez de zéro avec notre assistant IA qui vous guidera étape par étape
+                        {language === 'fr'
+                          ? 'Commencez de zéro avec notre assistant IA qui vous guidera étape par étape'
+                          : 'Start from scratch with our AI assistant that will guide you step by step'}
                       </p>
                     </div>
                     <Button asChild size="lg" className="w-full md:w-auto min-w-[200px] bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-xl hover:shadow-blue-500/20 transform hover:scale-105 transition-all duration-200">
                       <Link href="/create/generate" className="flex items-center justify-center gap-2">
-                        Créer un nouveau CV
+                        {language === 'fr' ? 'Créer un nouveau CV' : 'Create a new CV'}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>

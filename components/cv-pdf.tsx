@@ -539,6 +539,9 @@ export function CVPDF({ data }: CVPDFProps) {
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 p-4">
+      <PDFViewer style={{ width: '100%', height: '800px' }}>
+        <CVDocument data={data} />
+      </PDFViewer>
       <PDFDownloadLink
         document={<CVDocument data={data} />}
         fileName={`CV-${data.personalInfo.name.replace(/\s+/g, '-')}.pdf`}

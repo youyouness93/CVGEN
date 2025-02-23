@@ -10,8 +10,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertCircle, ArrowRight, Briefcase, FileText } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useLanguage } from "@/context/language-context"
 
-const formSchema = z.object({
+const formSchemaFr = z.object({
   jobTitle: z
     .string()
     .min(3, "Le titre doit contenir au moins 3 caractères")
@@ -22,12 +23,26 @@ const formSchema = z.object({
     .max(5000, "La description ne doit pas dépasser 5000 caractères"),
 })
 
+const formSchemaEn = z.object({
+  jobTitle: z
+    .string()
+    .min(3, "Title must contain at least 3 characters")
+    .max(100, "Title must not exceed 100 characters"),
+  jobDescription: z
+    .string()
+    .min(50, "Description must contain at least 50 characters")
+    .max(5000, "Description must not exceed 5000 characters"),
+})
+
 interface JobDescriptionFormProps {
-  onSubmit: (data: z.infer<typeof formSchema>) => Promise<void>
+  onSubmit: (data: z.infer<typeof formSchemaFr>) => Promise<void>
   isLoading: boolean
 }
 
 export function JobDescriptionForm({ onSubmit, isLoading }: JobDescriptionFormProps) {
+  const { language } = useLanguage()
+  const formSchema = language === 'fr' ? formSchemaFr : formSchemaEn
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,7 +59,9 @@ export function JobDescriptionForm({ onSubmit, isLoading }: JobDescriptionFormPr
     } catch (error) {
       form.setError("root", {
         type: "submit",
-        message: "Une erreur est survenue lors de l'analyse. Veuillez réessayer.",
+        message: language === 'fr'
+          ? "Une erreur est survenue lors de l'analyse. Veuillez réessayer."
+          : "An error occurred during analysis. Please try again.",
       })
     }
   }
@@ -68,14 +85,16 @@ export function JobDescriptionForm({ onSubmit, isLoading }: JobDescriptionFormPr
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
                 <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                Titre du poste
+                {language === 'fr' ? 'Titre du poste' : 'Job Title'}
               </FormLabel>
               <FormDescription className="text-gray-600 dark:text-gray-400">
-                Entrez le titre exact du poste que vous visez
+                {language === 'fr'
+                  ? "Entrez le titre exact du poste que vous visez"
+                  : "Enter the exact title of the position you are targeting"}
               </FormDescription>
               <FormControl>
                 <Input
-                  placeholder="ex: Développeur Full Stack JavaScript"
+                  placeholder={language === 'fr' ? "ex: Développeur Full Stack JavaScript" : "e.g: Full Stack JavaScript Developer"}
                   className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                   {...field}
                 />
@@ -92,14 +111,16 @@ export function JobDescriptionForm({ onSubmit, isLoading }: JobDescriptionFormPr
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
                 <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                Description du poste
+                {language === 'fr' ? 'Description du poste' : 'Job Description'}
               </FormLabel>
               <FormDescription className="text-gray-600 dark:text-gray-400">
-                Copiez-collez l'offre d'emploi ou décrivez le poste en détail (responsabilités, compétences requises, etc.)
+                {language === 'fr'
+                  ? "Copiez-collez l'offre d'emploi ou décrivez le poste en détail (responsabilités, compétences requises, etc.)"
+                  : "Copy-paste the job offer or describe the position in detail (responsibilities, required skills, etc.)"}
               </FormDescription>
               <FormControl>
                 <Textarea
-                  placeholder="Décrivez le poste ici..."
+                  placeholder={language === 'fr' ? "Décrivez le poste ici..." : "Describe the position here..."}
                   className="min-h-[200px] bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 transition-colors resize-y"
                   {...field}
                 />
@@ -119,11 +140,11 @@ export function JobDescriptionForm({ onSubmit, isLoading }: JobDescriptionFormPr
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Analyse en cours...
+                {language === 'fr' ? 'Analyse en cours...' : 'Analysis in progress...'}
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                Continuer
+                {language === 'fr' ? 'Continuer' : 'Continue'}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </div>
             )}

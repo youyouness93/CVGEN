@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
+import { useLanguage } from "@/context/language-context"
 
 export function UploadHandler() {
   const router = useRouter()
+  const { language } = useLanguage()
   const [extractedText, setExtractedText] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [uploadComplete, setUploadComplete] = useState(false)
@@ -15,11 +17,9 @@ export function UploadHandler() {
   const handleFileAccepted = async (file: File) => {
     try {
       setIsLoading(true)
-      // Créer un FormData avec le fichier
       const formData = new FormData()
       formData.append("file", file)
 
-      // Envoyer le fichier à l'API d'extraction
       const response = await fetch("/api/extract", {
         method: "POST",
         body: formData,
@@ -28,18 +28,16 @@ export function UploadHandler() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'extraction du CV')
+        throw new Error(data.error || (language === 'fr' ? 'Erreur lors de l\'extraction du CV' : 'Error extracting CV'))
       }
 
-      // Afficher le texte extrait
       setExtractedText(data.rawText)
       setUploadComplete(true)
 
-      // Stocker les données extraites dans le localStorage pour les utiliser plus tard
       localStorage.setItem('cvData', JSON.stringify(data))
     } catch (error) {
-      console.error('Erreur de traitement:', error)
-      throw new Error(error instanceof Error ? error.message : 'Erreur lors du traitement du fichier')
+      console.error(language === 'fr' ? 'Erreur de traitement:' : 'Processing error:', error)
+      throw new Error(error instanceof Error ? error.message : (language === 'fr' ? 'Erreur lors du traitement du fichier' : 'Error processing file'))
     } finally {
       setIsLoading(false)
     }
@@ -61,10 +59,12 @@ export function UploadHandler() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-green-600 via-blue-600 to-green-600 dark:from-green-400 dark:via-blue-400 dark:to-green-400 mb-2">
-                  CV importé avec succès !
+                  {language === 'fr' ? 'CV importé avec succès !' : 'CV imported successfully!'}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Passez à l'étape suivante pour décrire le poste que vous visez
+                  {language === 'fr' 
+                    ? 'Passez à l\'étape suivante pour décrire le poste que vous visez'
+                    : 'Move on to the next step to describe the position you are targeting'}
                 </p>
               </div>
               <Button
@@ -72,7 +72,7 @@ export function UploadHandler() {
                 size="lg"
                 className="w-full sm:w-auto min-w-[200px] bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-xl hover:shadow-blue-500/20 transform hover:scale-105 transition-all duration-200 group"
               >
-                Continuer
+                {language === 'fr' ? 'Continuer' : 'Continue'}
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>

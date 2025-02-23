@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { AlertCircle, Download, Loader2, Sparkles, Wand2, FileCheck, Bot } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from "@/context/language-context";
 
 interface JobData {
   jobTitle: string;
@@ -31,6 +32,29 @@ const generateSteps = [
   "Finalisation"
 ];
 
+const texts = {
+  fr: {
+    generating: "Génération en cours...",
+    generate: "Générer mon CV",
+    success: "CV généré avec succès !",
+    error: "Une erreur est survenue lors de la génération",
+    download: "Télécharger mon CV",
+    regenerate: "Générer à nouveau",
+    aiAssistant: "Assistant IA",
+    targetJob: "Poste ciblé :"
+  },
+  en: {
+    generating: "Generating...",
+    generate: "Generate my CV",
+    success: "CV generated successfully!",
+    error: "An error occurred during generation",
+    download: "Download my CV",
+    regenerate: "Generate again",
+    aiAssistant: "AI Assistant",
+    targetJob: "Target Position:"
+  }
+};
+
 export function GenerationHandler() {
   const [cvData] = useLocalStorage('cvData', null);
   const [jobData] = useLocalStorage<JobData | null>('jobData', null);
@@ -42,6 +66,7 @@ export function GenerationHandler() {
   const [generationComplete, setGenerationComplete] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
+  const { language } = useLanguage();
 
   useEffect(() => {
     if (!cvData || !jobData) {
@@ -139,6 +164,17 @@ export function GenerationHandler() {
 
   return (
     <div className="space-y-8">
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            {texts[language].aiAssistant}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            {texts[language].targetJob} <span className="font-medium text-gray-900 dark:text-white">{jobData?.jobTitle}</span>
+          </p>
+        </div>
+      </div>
+
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -184,7 +220,7 @@ export function GenerationHandler() {
               <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-shimmer"></div>
               <div className="relative flex items-center justify-center gap-2">
                 <Wand2 className="w-5 h-5 transition-transform group-hover:rotate-12" />
-                Générer mon CV optimisé
+                {texts[language].generate}
               </div>
             </Button>
           </motion.div>
@@ -236,7 +272,7 @@ export function GenerationHandler() {
                 <div className="absolute inset-0 bg-green-500/20 rounded-full blur-lg animate-pulse"></div>
                 <FileCheck className="h-6 w-6 relative" />
               </div>
-              <span className="font-medium">Génération terminée avec succès !</span>
+              <span className="font-medium">{texts[language].success}</span>
             </div>
             
             <motion.div 
@@ -262,7 +298,7 @@ export function GenerationHandler() {
                   <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-shimmer"></div>
                   <div className="relative flex items-center justify-center gap-2">
                     <Download className="w-5 h-5 transition-transform group-hover:translate-y-1" />
-                    Télécharger le CV
+                    {texts[language].download}
                   </div>
                 </Button>
               </motion.div>

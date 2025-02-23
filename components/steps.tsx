@@ -1,5 +1,6 @@
 import { Check, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/context/language-context"
 
 interface Step {
   id: string
@@ -12,6 +13,8 @@ interface StepsProps {
 }
 
 export function Steps({ steps }: StepsProps) {
+  const { language } = useLanguage()
+
   return (
     <nav aria-label="Progress" className="w-full">
       <ol role="list" className="flex items-center justify-between gap-4">
@@ -60,7 +63,7 @@ export function Steps({ steps }: StepsProps) {
                   {step.title}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Étape {stepIdx + 1}/{steps.length}
+                  {language === 'fr' ? `Étape ${stepIdx + 1}/${steps.length}` : `Step ${stepIdx + 1}/${steps.length}`}
                 </span>
               </div>
             </div>

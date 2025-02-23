@@ -1,13 +1,14 @@
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
+import { LanguageProvider } from '@/context/language-context'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata = {
   title: "CV Creator - Créez votre CV adapté en quelques clics",
   description: "Générez un CV personnalisé pour chaque offre d'emploi grâce à l'IA",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -16,12 +17,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className="h-full">
-      <body className={cn("min-h-full bg-background font-sans antialiased", inter.variable)}>{children}</body>
+    <html lang="en">
+      <body className={cn("min-h-full bg-background font-sans antialiased", inter.variable)}>
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
+      </body>
     </html>
   )
 }
-
-
-
-import './globals.css'
